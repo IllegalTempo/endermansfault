@@ -1,0 +1,16 @@
+[
+{
+  "modid": "endermanfault",
+  "name": "Enderman's Fault",
+  "description": "Plushies!!! Waifus!!!",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["EndermanPVP"],
+  "credits": "ME",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
