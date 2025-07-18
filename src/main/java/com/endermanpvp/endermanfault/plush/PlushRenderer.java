@@ -84,6 +84,7 @@ public class PlushRenderer {
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
+        if(!main.config.enablePlushie)return;
 
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) {
             return;

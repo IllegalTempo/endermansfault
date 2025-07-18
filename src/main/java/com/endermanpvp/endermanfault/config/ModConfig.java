@@ -17,6 +17,11 @@ public class ModConfig extends Config {
     @HUD(
             name = "Plushie"
     )
+    @Switch(
+            name = "Enable Plushie",
+            description = "Render touhou plushie!"
+    )
+    public boolean enablePlushie = true;
     @Slider(
         name = "Plush X Offset",
         description = "Horizontal offset from the anchor position",
