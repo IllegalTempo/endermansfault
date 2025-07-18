@@ -1,4 +1,4 @@
-package com.endermanpvp.endermanfault;
+package com.endermanpvp.endermanfault.plush;
 
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;

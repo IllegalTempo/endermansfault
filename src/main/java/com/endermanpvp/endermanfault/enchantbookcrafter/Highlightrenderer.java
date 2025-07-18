@@ -1,4 +1,4 @@
-package com.endermanpvp.endermanfault;
+package com.endermanpvp.endermanfault.enchantbookcrafter;
 
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
@@ -10,6 +10,7 @@ public class Highlightrenderer {
      * @param gui The GuiContainer instance
      */
     public static void renderHighlightedSlots(GuiContainer gui) {
+
         // Enable blending for proper overlay effect
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -22,11 +23,13 @@ public class Highlightrenderer {
             // Correct offset: add guiLeft and guiTop
             int x = (gui.width - 176) / 2 + slot.xDisplayPosition;
             int y = (gui.height - 222) / 2 + slot.yDisplayPosition;
-            if(HighlightSameEnchantClickListener.highlightedSlots.contains(i-45)) {
-                gui.drawRect(x, y, x + 16, y + 16, 0x5AFFFFFF); // Semi-transparent bright white
+
+            if(HighlightSameEnchantClickListener.highlightedSlots.contains(i)) {
+                gui.drawRect(x, y, x + 16, y + 16, 0x6AFFFFFF); // Semi-transparent bright white
             } else {
-                gui.drawRect(x, y, x + 16, y + 16, 0x5A000000); // Semi-transparent dark
+                gui.drawRect(x, y, x + 16, y + 16, 0x6A000000); // Semi-transparent dark
             }
+            // Render the slot index 'i' at the given x and y
         }
 
         // Restore default blending

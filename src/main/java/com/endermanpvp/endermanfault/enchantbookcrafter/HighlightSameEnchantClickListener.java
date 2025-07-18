@@ -1,8 +1,8 @@
-package com.endermanpvp.endermanfault;
+package com.endermanpvp.endermanfault.enchantbookcrafter;
 
 
-import com.endermanpvp.endermanfault.Highlightrenderer;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.init.Items;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -12,19 +12,18 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.input.Mouse;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 public class HighlightSameEnchantClickListener {
     public static final Set<Integer> highlightedSlots = new HashSet<Integer>();
-    @SubscribeEvent
-    public void onOpenGUI(GuiScreenEvent.InitGuiEvent.Post event) {
-        if (event.gui instanceof GuiContainer) {
-            GuiContainer container = (GuiContainer) event.gui;
 
+    @SubscribeEvent
+    public void onGuiOpen(GuiScreenEvent.InitGuiEvent.Post event) {
+        if (event.gui instanceof GuiContainer) {
             highlightedSlots.clear();
         }
     }
+
     @SubscribeEvent
     public void onMouseInput(GuiScreenEvent.MouseInputEvent.Pre event) {
 
@@ -38,20 +37,24 @@ public class HighlightSameEnchantClickListener {
 
                 if (slot != null && slot.getHasStack()) {
                     ItemStack clickedItem = slot.getStack();
-                    System.out.println("container(1): " + container.inventorySlots.getSlot(0).inventory.getName() + " " + slot.inventory.getName());
+                    if(clickedItem.getItem() != Items.enchanted_book) return;
                     if(!container.inventorySlots.getSlot(0).inventory.getName().equals("Anvil")) return;
-
+                    if(slot.getStack().getItem() != Items.enchanted_book) return;
                     if(slot.inventory.getName().contains("container.inventory"))
                     {
-
+                        if(!highlightedSlots.contains(slot.slotNumber) && !highlightedSlots.isEmpty())
+                        {
+                            event.setCanceled(true);
+                            return;
+                        }
                         highlightedSlots.clear();
                         NBTTagCompound tag = clickedItem.getTagCompound();
                         if (tag.hasKey("ExtraAttributes", Constants.NBT.TAG_COMPOUND)) {
                             NBTTagCompound extra = tag.getCompoundTag("ExtraAttributes");
                             if (extra.hasKey("enchantments", Constants.NBT.TAG_COMPOUND)) {
                                 NBTTagCompound enchants = extra.getCompoundTag("enchantments");
-                                for (int i = 0; i < slot.inventory.getSizeInventory(); i++) {
-                                    ItemStack stack = slot.inventory.getStackInSlot(i);
+                                for (int i = 0; i < container.inventorySlots.inventorySlots.size(); i++) {
+                                    ItemStack stack = container.inventorySlots.getSlot(i).getStack();
                                     if (stack != null) {
                                         NBTTagCompound looptag = stack.getTagCompound();
                                         if (looptag.hasKey("ExtraAttributes", Constants.NBT.TAG_COMPOUND)) {
@@ -61,7 +64,9 @@ public class HighlightSameEnchantClickListener {
 
                                                 if(loopextra.getCompoundTag("enchantments").equals(enchants)) {
 
-                                                    highlightedSlots.add(i);
+                                                        highlightedSlots.add(i);
+
+
                                                     System.out.println("Highlighting slot: " + i + " with enchantments: " + loopextra.getCompoundTag("enchantments"));
                                                 }
                                             }
@@ -69,7 +74,11 @@ public class HighlightSameEnchantClickListener {
                                         }
                                     }
                                 }
-                                highlightedSlots.remove(slot.slotNumber-45);
+                                highlightedSlots.remove(slot.slotNumber);
+                                if(highlightedSlots.isEmpty() && container.inventorySlots.getSlot(29).getStack() == null)
+                                {
+                                    event.setCanceled(true);
+                                }
                                 // Render highlights after updating highlightedSlots
                             }
                         }

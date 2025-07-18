@@ -1,5 +1,6 @@
-package com.endermanpvp.endermanfault;
+package com.endermanpvp.endermanfault.plush;
 
+import com.endermanpvp.endermanfault.main;
 import com.google.common.base.Function;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -83,6 +84,7 @@ public class PlushRenderer {
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
+
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) {
             return;
         }
@@ -112,12 +114,15 @@ public class PlushRenderer {
             float baseScale = 100.0F;
             // Calculate a dynamic scale factor based on the screen's scaled height.
             // This makes the model resize along with the GUI.
-            float dynamicScale = baseScale *(event.resolution.getScaledHeight() / 1920F);
-            float xmargin = 5.0F; // A margin from the screen edges
-            float ymargin = 2.0F;
+            float dynamicScale = baseScale * (event.resolution.getScaledHeight() / 1920F) * main.config.plushScale;
 
-            // Position the model in the bottom-left of the screen.
-            GlStateManager.translate(dynamicScale + xmargin * dynamicScale, event.resolution.getScaledHeight() - dynamicScale - ymargin * dynamicScale, 100.0F);
+
+            // Calculate position based on config
+            float posX = main.config.plushXOffset;
+            float posY = main.config.plushYOffset;
+
+            // Position the model based on config settings
+            GlStateManager.translate(posX, posY, 100.0F);
 
             // Create a smooth "breathing" animation using a sine wave.
             // The animation speed is controlled by the divisor of currentTimeMillis.
@@ -194,3 +199,4 @@ public class PlushRenderer {
         }
     }
 }
+

@@ -1,4 +1,3 @@
-
 // For those who want the bleeding edge
 buildscript {
     repositories {
@@ -7,6 +6,8 @@ buildscript {
             name = "forge"
             url = "http://files.minecraftforge.net/maven"
         }
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
@@ -37,35 +38,22 @@ minecraft {
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 }
 
-dependencies {
-    // you may put jars on which you depend on in ./libs
-    // or you may define them like so..
-    //compile "some.group:artifact:version:classifier"
-    //compile "some.group:artifact:version"
-      
-    // real examples
-    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
-    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
-
-    // the 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
-    //provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
-
-    // the deobf configurations:  'deobfCompile' and 'deobfProvided' are the same as the normal compile and provided,
-    // except that these dependencies get remapped to your current MCP mappings
-    //deobfCompile 'com.mod-buildcraft:buildcraft:6.0.8:dev'
-    //deobfProvided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
-
-    // for more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
-
+repositories {
+    maven { url 'https://repo.polyfrost.cc/releases' }
 }
+
+dependencies {
+    compileOnly('cc.polyfrost:oneconfig-1.8.9-forge:0.2.2-alpha+')
+    implementation 'cc.polyfrost:oneconfig-wrapper-launchwrapper:1.0.0-beta+'
+}
+
 task copyMod(type: Copy) {
     from("$buildDir/libs/endermanfault-1.0.jar") // Replace with your actual jar name
-    into "C:/Users/jedts/AppData/Roaming/.minecraft/mods/1.8.9"
+    into "C:/Users/jedts/AppData/Roaming/.minecraft/skyclient/mods"
 }
 
-build.finalizedBy(copyMod)
+build.finalizedBy copyMod
+
 processResources
 {
     // this will ensure that this task is redone when the versions change.
@@ -79,9 +67,21 @@ processResources
         // replace version and mcversion
         expand 'version':project.version, 'mcversion':project.minecraft.version
     }
-        
+
+
     // copy everything else, thats not the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+                "ModSide": "CLIENT",
+                "TweakOrder": "0",
+                "ForceLoadAsMod": true,
+                "TweakClass": "cc.polyfrost.oneconfig.loader.stage0.LaunchWrapperTweaker"
+        )
     }
 }
