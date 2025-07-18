@@ -17,7 +17,7 @@ public class MouseInputHandler {
         // This event fires for any mouse button state change.
         // We only care about left and right clicks.
         if (Mouse.getEventButton() == 0 || Mouse.getEventButton() == 1) {
-            if (Mouse.getEventButtonState()) { // Button was pressed
+            if (Mouse.getEventButtonState()) {
                 plushRenderer.startSqueezing();
             } else { // Button was released
                 plushRenderer.stopSqueezing();
