@@ -1,5 +1,6 @@
 package com.endermanpvp.endermanfault;
 
+import com.endermanpvp.endermanfault.ArmorStandOptimize.ArmorStandRenderer;
 import com.endermanpvp.endermanfault.config.ModConfig;
 import com.endermanpvp.endermanfault.enchantbookcrafter.HighlightSameEnchantClickListener;
 import com.endermanpvp.endermanfault.enchantbookcrafter.Highlightrenderer;
@@ -7,9 +8,12 @@ import com.endermanpvp.endermanfault.plush.MouseInputHandler;
 import com.endermanpvp.endermanfault.plush.PlushRenderer;
 import com.endermanpvp.endermanfault.plush.conversation.conversationRenderer;
 import com.endermanpvp.endermanfault.superpair.superpairmain;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -32,7 +36,7 @@ public class main
     {
         config = new ModConfig();
         MinecraftForge.EVENT_BUS.register(new HighlightSameEnchantClickListener());
-
+        RenderingRegistry.registerEntityRenderingHandler(EntityArmorStand.class, new ArmorStandRenderer(Minecraft.getMinecraft().getRenderManager()));
         PlushRenderer plushRenderer = new PlushRenderer();
         plushRenderer.init();
         MinecraftForge.EVENT_BUS.register(plushRenderer);
