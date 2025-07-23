@@ -1,6 +1,6 @@
 package com.endermanpvp.endermanfault;
 
-import com.endermanpvp.endermanfault.ArmorStandOptimize.ArmorStandRenderer;
+import com.endermanpvp.endermanfault.ArmorStandOptimize.CustomArmorStandRenderer;
 import com.endermanpvp.endermanfault.config.ModConfig;
 import com.endermanpvp.endermanfault.enchantbookcrafter.HighlightSameEnchantClickListener;
 import com.endermanpvp.endermanfault.enchantbookcrafter.Highlightrenderer;
@@ -32,11 +32,10 @@ public class main
 
 
     @EventHandler
-    public void init(FMLInitializationEvent event)
-    {
+    public void init(FMLInitializationEvent event) {
         config = new ModConfig();
         MinecraftForge.EVENT_BUS.register(new HighlightSameEnchantClickListener());
-        RenderingRegistry.registerEntityRenderingHandler(EntityArmorStand.class, new ArmorStandRenderer(Minecraft.getMinecraft().getRenderManager()));
+        RenderingRegistry.registerEntityRenderingHandler(EntityArmorStand.class, new CustomArmorStandRenderer(Minecraft.getMinecraft().getRenderManager()));
         PlushRenderer plushRenderer = new PlushRenderer();
         plushRenderer.init();
         MinecraftForge.EVENT_BUS.register(plushRenderer);
@@ -45,8 +44,8 @@ public class main
         MinecraftForge.EVENT_BUS.register(this);
         // Register the conversation renderer
         MinecraftForge.EVENT_BUS.register(conversationRenderer.getInstance());
+        // Register the secret tracker
     }
-
     @SubscribeEvent
     public void onGuiDraw(GuiScreenEvent.DrawScreenEvent.Post event) {
         if (event.gui instanceof GuiContainer && !HighlightSameEnchantClickListener.highlightedSlots.isEmpty()) {
