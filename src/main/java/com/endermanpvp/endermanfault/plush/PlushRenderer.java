@@ -1,5 +1,6 @@
 package com.endermanpvp.endermanfault.plush;
 
+import com.endermanpvp.endermanfault.config.ModConfig;
 import com.endermanpvp.endermanfault.main;
 import com.google.common.base.Function;
 import net.minecraft.client.Minecraft;
@@ -84,7 +85,7 @@ public class PlushRenderer {
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
-        if(!main.config.enablePlushie)return;
+        if(!ModConfig.getInstance().getBoolean("toggle_fumo", false))return;
 
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) {
             return;
@@ -115,12 +116,12 @@ public class PlushRenderer {
             float baseScale = 100.0F;
             // Calculate a dynamic scale factor based on the screen's scaled height.
             // This makes the model resize along with the GUI.
-            float dynamicScale = baseScale * (event.resolution.getScaledHeight() / 1920F) * main.config.plushScale;
+            float dynamicScale = baseScale * (event.resolution.getScaledHeight() / 1920F) * ModConfig.getInstance().getFloat("plushScale", 1);
 
 
             // Calculate position based on config
-            float posX = main.config.plushXOffset;
-            float posY = main.config.plushYOffset;
+            float posX = ModConfig.getInstance().getInt("plushXOffset", event.resolution.getScaledWidth() / 2);
+            float posY = ModConfig.getInstance().getInt("plushYOffset", event.resolution.getScaledHeight() / 2);
 
             // Position the model based on config settings
             GlStateManager.translate(posX, posY, 100.0F);
@@ -200,4 +201,3 @@ public class PlushRenderer {
         }
     }
 }
-

@@ -1,88 +1,133 @@
 package com.endermanpvp.endermanfault.config;
 
+import net.minecraft.client.Minecraft;
+import java.io.*;
+import java.util.Properties;
 
-import cc.polyfrost.oneconfig.config.Config;
-import cc.polyfrost.oneconfig.config.annotations.HUD;
-import cc.polyfrost.oneconfig.config.annotations.Switch;
-import cc.polyfrost.oneconfig.config.annotations.Slider;
-import cc.polyfrost.oneconfig.config.annotations.Dropdown;
-import cc.polyfrost.oneconfig.config.data.Mod;
-import cc.polyfrost.oneconfig.config.data.ModType;
+public class ModConfig {
+    private static final String CONFIG_FILE_NAME = "endermanfault.cfg";
+    private static ModConfig instance;
+    private final Properties properties;
+    private final File configFile;
 
-public class ModConfig extends Config {
+    private ModConfig() {
+        properties = new Properties();
+        File configDir = new File(Minecraft.getMinecraft().mcDataDir, "config");
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+        }
+        configFile = new File(configDir, CONFIG_FILE_NAME);
+        loadConfig();
+    }
 
+    public static ModConfig getInstance() {
+        if (instance == null) {
+            instance = new ModConfig();
+        }
+        return instance;
+    }
 
+    public void loadConfig() {
+        if (configFile.exists()) {
+            FileInputStream fis = null;
+            try {
+                fis = new FileInputStream(configFile);
+                properties.load(fis);
+            } catch (IOException e) {
+                System.err.println("Failed to load config: " + e.getMessage());
+            } finally {
+                if (fis != null) {
+                    try {
+                        fis.close();
+                    } catch (IOException e) {
+                        // Ignore
+                    }
+                }
+            }
+        }
+    }
 
+    public void saveConfig() {
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(configFile);
+            properties.store(fos, "EndermanFault Mod Configuration");
+        } catch (IOException e) {
+            System.err.println("Failed to save config: " + e.getMessage());
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    // Ignore
+                }
+            }
+        }
+    }
 
-    @HUD(
-            name = "Plushie"
-    )
-    @Switch(
-            name = "Enable Plushie",
-            description = "Render touhou plushie!"
-    )
-    public boolean enablePlushie = true;
-    @Slider(
-        name = "Plush X Offset",
-        description = "Horizontal offset from the anchor position",
-        min = -2000,
-        max = 2000
-    )
-    public int plushXOffset = 0;
+    public boolean getBoolean(String key, boolean defaultValue) {
+        String value = properties.getProperty(key);
+        if (value == null) {
+            setBoolean(key, defaultValue);
+            return defaultValue;
+        }
+        return Boolean.parseBoolean(value);
+    }
 
-    @Slider(
-        name = "Plush Y Offset",
-        description = "Vertical offset from the anchor position",
-        min = -2000,
-        max = 2000
-    )
-    public int plushYOffset = 0;
+    public void setBoolean(String key, boolean value) {
+        properties.setProperty(key, String.valueOf(value));
+        saveConfig();
+    }
 
-    @Slider(
-        name = "Plush Scale",
-        description = "Scale of the plush model",
-        min = 0.1f,
-        max = 5.0f
-    )
-    public float plushScale = 1.0f;
+    public int getInt(String key, int defaultValue) {
+        String value = properties.getProperty(key);
+        if (value == null) {
+            setInt(key, defaultValue);
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            setInt(key, defaultValue);
+            return defaultValue;
+        }
+    }
 
-    @HUD(
-            name = "Plushie Conversation"
-    )
-    @Slider
-    (
-            name = "Conversation X Offset",
-            description = "Horizontal offset for the conversation box",
-            min = -2000,
-            max = 2000
-    )
-    public float conversationXOffset = 0;
-    @Slider
-            (
-                    name = "Conversation Y Offset",
-                    description = "Vertical offset for the conversation box",
-                    min = -2000,
-                    max = 2000
-            )
-    public float conversationYOffset = 0;
-    @Slider
-            (
-                    name = "Conversation Scale",
-                    description = "Vertical offset for the conversation box",
-                    min = 0,
-                    max = 5
-            )
-    public float conversationScale = 1;
-    @HUD(name = "Superpair Support")
-    @Switch
-            (
-                    name = "Enable Superpair Support",
-                    description = "Render items you have clicked"
-            )
-    public boolean EnableSuperpairSupport = true;
+    public void setInt(String key, int value) {
+        properties.setProperty(key, String.valueOf(value));
+        saveConfig();
+    }
 
-    public ModConfig() {
-        super(new Mod("Enderman Fault", ModType.SKYBLOCK,"assets/endermanfault/icon.png"), "endermanfault.json");
-        initialize();
+    public String getString(String key, String defaultValue) {
+        String value = properties.getProperty(key);
+        if (value == null) {
+            setString(key, defaultValue);
+            return defaultValue;
+        }
+        return value;
+    }
+
+    public void setString(String key, String value) {
+        properties.setProperty(key, value);
+        saveConfig();
+    }
+
+    public float getFloat(String key, float defaultValue) {
+        String value = properties.getProperty(key);
+        if (value == null) {
+            setFloat(key, defaultValue);
+            return defaultValue;
+        }
+        try {
+            return Float.parseFloat(value);
+        } catch (NumberFormatException e) {
+            setFloat(key, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    public void setFloat(String key, float value) {
+        properties.setProperty(key, String.valueOf(value));
+        saveConfig();
     }
 }

@@ -41,8 +41,7 @@ public class CustomArmorStandRenderer extends ArmorStandRenderer {
 
     @Override
     protected ResourceLocation getEntityTexture(EntityArmorStand entity) {
-        // Use the original armor stand texture
-        return new ResourceLocation("textures/entity/armorstand/wood.png");
+        return null;
     }
     private static void renderFloatingText(String text, double x, double y, double z,float ticks, float height) {
         Minecraft mc = Minecraft.getMinecraft();

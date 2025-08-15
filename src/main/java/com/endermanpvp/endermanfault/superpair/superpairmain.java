@@ -1,6 +1,6 @@
 package com.endermanpvp.endermanfault.superpair;
 
-import com.endermanpvp.endermanfault.main;
+import com.endermanpvp.endermanfault.config.ModConfig;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.GuiOpenEvent;
@@ -14,7 +14,7 @@ public class superpairmain {
     public superpairRenderer superpairRenderer = new superpairRenderer();
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent e) {
-        if(!main.config.EnableSuperpairSupport) return;
+        if(!ModConfig.getInstance().getBoolean("toggle_superpair", false)) return;
         DisplayedItems.clear();
 
         if (e.gui instanceof GuiContainer) {
@@ -26,7 +26,7 @@ public class superpairmain {
         } else if (e.gui == null) {
             DisplayedItems.clear();
 
-            // GUI is closingp
+            // GUI is closing
             MinecraftForge.EVENT_BUS.unregister(superpairRenderer);
         }
     }
