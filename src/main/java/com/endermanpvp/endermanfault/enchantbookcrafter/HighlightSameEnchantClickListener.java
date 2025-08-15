@@ -1,7 +1,10 @@
 package com.endermanpvp.endermanfault.enchantbookcrafter;
 
 
+import com.endermanpvp.endermanfault.config.ConfigGUI;
+import com.endermanpvp.endermanfault.config.ModConfig;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
@@ -27,7 +30,7 @@ public class HighlightSameEnchantClickListener {
     @SubscribeEvent
     public void onMouseInput(GuiScreenEvent.MouseInputEvent.Pre event) {
 
-
+        if(!ModConfig.getInstance().getBoolean("toggle_enchantbook", false)) return;
         if (event.gui instanceof GuiContainer) {
             GuiContainer container = (GuiContainer) event.gui;
 
@@ -67,7 +70,6 @@ public class HighlightSameEnchantClickListener {
                                                         highlightedSlots.add(i);
 
 
-                                                    System.out.println("Highlighting slot: " + i + " with enchantments: " + loopextra.getCompoundTag("enchantments"));
                                                 }
                                             }
 

@@ -5,6 +5,7 @@ import com.endermanpvp.endermanfault.config.CommandOpenConfig;
 import com.endermanpvp.endermanfault.config.ConfigGUI;
 import com.endermanpvp.endermanfault.enchantbookcrafter.HighlightSameEnchantClickListener;
 import com.endermanpvp.endermanfault.enchantbookcrafter.Highlightrenderer;
+import com.endermanpvp.endermanfault.equipment.RenderEquipmentInventory;
 import com.endermanpvp.endermanfault.plush.MouseInputHandler;
 import com.endermanpvp.endermanfault.plush.PlushRenderer;
 import com.endermanpvp.endermanfault.plush.conversation.conversationRenderer;
@@ -44,6 +45,8 @@ public class main
             MinecraftForge.EVENT_BUS.register(this);
             // Register the conversation renderer
             MinecraftForge.EVENT_BUS.register(conversationRenderer.getInstance());
+            // Register the equipment inventory renderer
+            MinecraftForge.EVENT_BUS.register(new RenderEquipmentInventory());
         }
         // Register the secret tracker
     }

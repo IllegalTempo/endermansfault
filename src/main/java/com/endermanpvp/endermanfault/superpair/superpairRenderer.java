@@ -47,7 +47,7 @@ public class superpairRenderer {
                                 GlStateManager.popMatrix();
                             }
                         } else {
-                            if(slot.getStack().getItem() != Item.getItemFromBlock(Blocks.stained_glass))
+                            if(slot.getStack().getItem() != Item.getItemFromBlock(Blocks.stained_glass) && slot.getStack().getItem() != Item.getItemFromBlock(Blocks.bookshelf))
                             {
                                 DisplayedItems.put(slot.slotNumber, slot.getStack());
                             }
