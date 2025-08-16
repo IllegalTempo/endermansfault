@@ -67,8 +67,7 @@ public class SettingToggle extends GuiButton {
 
             // Optional: Draw button text if needed (draw after popping matrix to avoid scaling text)
             if (this.displayString != null && !this.displayString.isEmpty()) {
-                int textColor = 14737632; // Default button text color
-
+                int textColor = 0x101010; // Black text color (much darker)
 
                 this.drawCenteredString(mc.fontRendererObj, this.displayString,
                     this.xPosition + this.width / 2, this.yPosition + (this.height - 8) / 2, textColor);

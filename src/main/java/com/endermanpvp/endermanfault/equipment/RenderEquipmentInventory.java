@@ -6,17 +6,10 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 public class RenderEquipmentInventory {
@@ -30,12 +23,15 @@ public class RenderEquipmentInventory {
     private static int[] equipmentSlotY = new int[4];
     private static boolean slotsPositionsCalculated = false;
 
-    // File path for saving equipment data
-    private static final String EQUIPMENT_FILE_NAME = "equipment_data.dat";
+    // Track if we've already recorded equipment this session
+    private static boolean recordedThisSession = false;
+    private static String lastInventoryName = "";
 
     // Load equipment data when the class is first used
     static {
-        loadEquipmentFromFile();
+        EquipmentFileManager.EquipmentData data = EquipmentFileManager.loadEquipmentFromFile();
+        savedEquipmentItems = data.equipmentItems;
+        hasRecordedItems = data.hasRecordedItems;
     }
 
     @SubscribeEvent
@@ -48,37 +44,23 @@ public class RenderEquipmentInventory {
             if (container.inventorySlots.inventorySlots.size() > 0) {
                 String inventoryName = container.inventorySlots.getSlot(0).inventory.getName();
 
-                // Record equipment items when "Your Equipment and Stats" is opened
+                // Record equipment items when "Your Equipment and Stats" is opened - only on first open or GUI change
                 if (inventoryName.equals("Your Equipment and Stats")) {
-                    recordEquipmentItems(container);
+                    if (!inventoryName.equals(lastInventoryName) || !recordedThisSession) {
+                        recordEquipmentItems(container);
+                        recordedThisSession = true;
+                        System.out.println("Recorded equipment on GUI open");
+                    }
                 }
 
                 // Only render equipment overlay in player's regular inventory
-                // Check if this is the player's inventory (not a chest, crafting table, etc.)
                 if (isPlayerInventoryOnly(container, inventoryName)) {
                     renderEquipmentOverlay(container);
-                    // Note: Tooltips are now rendered in a separate event handler to ensure they appear on top
+                    // Render equipment tooltips on hover
+                    renderEquipmentTooltips(container, event.mouseX, event.mouseY);
                 }
-            }
-        }
-    }
 
-    @SubscribeEvent
-    public void onGuiDrawLast(GuiScreenEvent.DrawScreenEvent.Post event) {
-        // Render tooltips last to ensure they appear above all other elements
-        if (event.gui instanceof GuiContainer) {
-            GuiContainer container = (GuiContainer) event.gui;
-
-            if (container.inventorySlots.inventorySlots.size() > 0) {
-                String inventoryName = container.inventorySlots.getSlot(0).inventory.getName();
-
-                // Only render tooltips in player's regular inventory
-                if (isPlayerInventoryOnly(container, inventoryName)) {
-                    // Get mouse position from Minecraft's Mouse class
-                    int mouseX = org.lwjgl.input.Mouse.getX() * container.width / container.mc.displayWidth;
-                    int mouseY = container.height - org.lwjgl.input.Mouse.getY() * container.height / container.mc.displayHeight - 1;
-                    renderEquipmentTooltips(container, mouseX, mouseY);
-                }
+                lastInventoryName = inventoryName;
             }
         }
     }
@@ -91,11 +73,15 @@ public class RenderEquipmentInventory {
             if (container.inventorySlots.inventorySlots.size() > 0) {
                 String inventoryName = container.inventorySlots.getSlot(0).inventory.getName();
 
-                // Only handle clicks in player's regular inventory
+                // Record equipment when clicked in equipment stats GUI
+                if (inventoryName.equals("Your Equipment and Stats") && org.lwjgl.input.Mouse.getEventButtonState()) {
+                    recordEquipmentItems(container);
+                    System.out.println("Recorded equipment on click");
+                }
+
+                // Handle clicks in player's regular inventory for /eq command
                 if (isPlayerInventoryOnly(container, inventoryName) && hasRecordedItems && slotsPositionsCalculated) {
-                    // Check if a mouse button was actually pressed (not just moved)
                     if (org.lwjgl.input.Mouse.getEventButtonState()) {
-                        // Get mouse position from Minecraft's Mouse class
                         int mouseX = org.lwjgl.input.Mouse.getX() * container.width / container.mc.displayWidth;
                         int mouseY = container.height - org.lwjgl.input.Mouse.getY() * container.height / container.mc.displayHeight - 1;
                         handleEquipmentClick(mouseX, mouseY);
@@ -182,85 +168,8 @@ public class RenderEquipmentInventory {
 
         hasRecordedItems = true;
 
-        // Save to file whenever equipment is recorded
-        saveEquipmentToFile();
-    }
-
-    /**
-     * Saves equipment items to file for persistence
-     */
-    private static void saveEquipmentToFile() {
-        try {
-            File equipmentFile = new File(Minecraft.getMinecraft().mcDataDir, EQUIPMENT_FILE_NAME);
-            NBTTagCompound rootTag = new NBTTagCompound();
-            NBTTagList equipmentList = new NBTTagList();
-
-            for (int i = 0; i < savedEquipmentItems.length; i++) {
-                NBTTagCompound itemTag = new NBTTagCompound();
-                if (savedEquipmentItems[i] != null) {
-                    savedEquipmentItems[i].writeToNBT(itemTag);
-                }
-                equipmentList.appendTag(itemTag);
-            }
-
-            rootTag.setTag("EquipmentItems", equipmentList);
-            rootTag.setBoolean("HasRecordedItems", hasRecordedItems);
-
-            FileOutputStream fileOutput = new FileOutputStream(equipmentFile);
-            CompressedStreamTools.writeCompressed(rootTag, fileOutput);
-            fileOutput.close();
-
-            System.out.println("[RenderEquipmentInventory] Equipment saved to file successfully");
-
-        } catch (IOException e) {
-            System.err.println("[RenderEquipmentInventory] Failed to save equipment to file: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Loads equipment items from file
-     */
-    private static void loadEquipmentFromFile() {
-        try {
-            File equipmentFile = new File(Minecraft.getMinecraft().mcDataDir, EQUIPMENT_FILE_NAME);
-
-            if (!equipmentFile.exists()) {
-                System.out.println("[RenderEquipmentInventory] No equipment file found, starting fresh");
-                return;
-            }
-
-            FileInputStream fileInput = new FileInputStream(equipmentFile);
-            NBTTagCompound rootTag = CompressedStreamTools.readCompressed(fileInput);
-            fileInput.close();
-
-            if (rootTag.hasKey("EquipmentItems")) {
-                NBTTagList equipmentList = rootTag.getTagList("EquipmentItems", 10); // 10 = compound tag type
-
-                for (int i = 0; i < Math.min(equipmentList.tagCount(), savedEquipmentItems.length); i++) {
-                    NBTTagCompound itemTag = equipmentList.getCompoundTagAt(i);
-
-                    if (itemTag.hasNoTags()) {
-                        savedEquipmentItems[i] = null;
-                    } else {
-                        savedEquipmentItems[i] = ItemStack.loadItemStackFromNBT(itemTag);
-                    }
-                }
-            }
-
-            if (rootTag.hasKey("HasRecordedItems")) {
-                hasRecordedItems = rootTag.getBoolean("HasRecordedItems");
-            }
-
-            System.out.println("[RenderEquipmentInventory] Equipment loaded from file successfully");
-
-        } catch (IOException e) {
-            System.err.println("[RenderEquipmentInventory] Failed to load equipment from file: " + e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.err.println("[RenderEquipmentInventory] Unexpected error loading equipment: " + e.getMessage());
-            e.printStackTrace();
-        }
+        // Save to file whenever equipment is recorded using the new file manager
+        EquipmentFileManager.saveEquipmentToFile(savedEquipmentItems, hasRecordedItems);
     }
 
     /**

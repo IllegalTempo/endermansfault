@@ -9,6 +9,8 @@ import com.endermanpvp.endermanfault.equipment.RenderEquipmentInventory;
 import com.endermanpvp.endermanfault.plush.MouseInputHandler;
 import com.endermanpvp.endermanfault.plush.PlushRenderer;
 import com.endermanpvp.endermanfault.plush.conversation.conversationRenderer;
+import com.endermanpvp.endermanfault.storageDisplay.StorageGUIData;
+import com.endermanpvp.endermanfault.storageDisplay.StorageRender;
 import com.endermanpvp.endermanfault.superpair.superpairmain;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -29,16 +31,19 @@ public class main
 {
     public static final String MODID = "endermanfault";
     public static final String VERSION = "1.0";
+    public static final StorageGUIData storageData = new StorageGUIData();
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
         if (FMLCommonHandler.instance().getSide() == Side.CLIENT) {
+            storageData.initialize();
             // Register client command to open config UI: /ef
             ClientCommandHandler.instance.registerCommand(new CommandOpenConfig());
             MinecraftForge.EVENT_BUS.register(new HighlightSameEnchantClickListener());
             RenderingRegistry.registerEntityRenderingHandler(EntityArmorStand.class, new CustomArmorStandRenderer(Minecraft.getMinecraft().getRenderManager()));
             PlushRenderer plushRenderer = new PlushRenderer();
             plushRenderer.init();
+            ;
             MinecraftForge.EVENT_BUS.register(plushRenderer);
             MinecraftForge.EVENT_BUS.register(new superpairmain());
             MinecraftForge.EVENT_BUS.register(new MouseInputHandler(plushRenderer));
@@ -47,6 +52,7 @@ public class main
             MinecraftForge.EVENT_BUS.register(conversationRenderer.getInstance());
             // Register the equipment inventory renderer
             MinecraftForge.EVENT_BUS.register(new RenderEquipmentInventory());
+            MinecraftForge.EVENT_BUS.register(storageData);
         }
         // Register the secret tracker
     }

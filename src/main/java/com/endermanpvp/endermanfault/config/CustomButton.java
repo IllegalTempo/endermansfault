@@ -67,7 +67,7 @@ public class CustomButton extends GuiButton {
 
             // Optional: Draw button text if needed (draw after popping matrix to avoid scaling text)
             if (this.displayString != null && !this.displayString.isEmpty()) {
-                int textColor = 14737632; // Default button text color
+                int textColor = 0x101010; // Default button text color
 
 
                 this.drawCenteredString(mc.fontRendererObj, this.displayString,
