@@ -10,16 +10,19 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.GuiOpenEvent;
+import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 
-public class StorageGUIRender extends GuiScreen {
+public class StorageGUIRender {
     private static final ResourceLocation CHEST_GUI_TEXTURE = new ResourceLocation("textures/gui/container/generic_54.png");
     private final StorageGUIData storageData;
+    private final Minecraft mc;
     private int scrollOffset = 0;
     private final int ITEMS_PER_ROW = 9;
     private final int SLOT_SIZE = 18;
@@ -28,34 +31,120 @@ public class StorageGUIRender extends GuiScreen {
     private int maxScroll = 0;
     private ItemStack hoveredItem = null;
     private StorageGUIData.Storage clickedStorage = null;
+    private boolean isVisible = false;
+    private boolean shouldClose = false;
 
     public StorageGUIRender(StorageGUIData storageData) {
         this.storageData = storageData;
         this.mc = Minecraft.getMinecraft();
     }
 
-    @Override
-    public void initGui() {
-        super.initGui();
+    public void show() {
+        isVisible = true;
         calculateMaxScroll();
     }
 
+    public void hide() {
+        isVisible = false;
+        shouldClose = false;
+    }
+
     private void calculateMaxScroll() {
+        ScaledResolution sr = new ScaledResolution(mc);
+        int screenHeight = sr.getScaledHeight();
         int storageRows = (storageData.storages.size() + STORAGES_PER_ROW - 1) / STORAGES_PER_ROW;
         int totalStorageHeight = storageRows * STORAGE_HEIGHT;
-        int availableHeight = height - 140; // Reserve space for title and player inventory
+        int availableHeight = screenHeight - 140; // Reserve space for title and player inventory
         maxScroll = Math.max(0, totalStorageHeight - availableHeight);
     }
 
-    @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        hoveredItem = null;
-        clickedStorage = null;
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onDrawScreen(GuiScreenEvent.DrawScreenEvent.Post event) {
+        if (!isVisible) {
+            return;
+        }
 
+        // Only render when a GUI container is open
+        if (!(mc.currentScreen instanceof GuiContainer)) {
+            hide();
+            return;
+        }
+
+        // Handle input
+        handleInput();
+
+        if (shouldClose) {
+            hide();
+            return;
+        }
+
+        // Push matrix and set up rendering state for overlay
+        GlStateManager.pushMatrix();
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+
+        // Render the storage overlay on top
+        renderStorageOverlay();
+
+        // Restore rendering state
+        GlStateManager.disableBlend();
+        GlStateManager.enableDepth();
+        GlStateManager.popMatrix();
+    }
+
+    private void handleInput() {
+        // Handle keyboard input
+
+            if (Mouse.getEventButtonState()) {
+                int button = Mouse.getEventButton();
+                int mouseX = Mouse.getEventX() * mc.currentScreen.width / mc.displayWidth;
+                int mouseY = mc.currentScreen.height - Mouse.getEventY() * mc.currentScreen.height / mc.displayHeight - 1;
+
+                handleMouseClick(mouseX, mouseY, button);
+            }
+
+            int wheel = Mouse.getEventDWheel();
+            if (wheel != 0) {
+                handleScrolling(wheel);
+            }
+
+    }
+
+    private void handleMouseClick(int mouseX, int mouseY, int mouseButton) {
+        // Handle storage click
+        if (mouseButton == 0 && clickedStorage != null) {
+            String command = clickedStorage.IsEnderChest
+                ? "/ec " + clickedStorage.StorageNum
+                : "/backpack " + clickedStorage.StorageNum;
+
+            mc.thePlayer.sendChatMessage(command);
+            shouldClose = true;
+            return;
+        }
+
+        // Close on right-click
+        if (mouseButton == 1) {
+            shouldClose = true;
+        }
+    }
+
+    private void handleScrolling(int wheel) {
+        int scrollAmount = 20;
+        if (wheel > 0) {
+            scrollOffset = Math.max(0, scrollOffset - scrollAmount);
+        } else if (wheel < 0) {
+            scrollOffset = Math.min(maxScroll, scrollOffset + scrollAmount);
+        }
+    }
+
+    private void renderStorageOverlay() {
         ScaledResolution sr = new ScaledResolution(mc);
         int screenWidth = sr.getScaledWidth();
         int screenHeight = sr.getScaledHeight();
+
+        hoveredItem = null;
+        clickedStorage = null;
 
         // Calculate layout areas
         int titleHeight = 20;
@@ -63,23 +152,30 @@ public class StorageGUIRender extends GuiScreen {
         int scrollableAreaHeight = screenHeight - titleHeight - playerInventoryHeight;
         int scrollableAreaY = titleHeight;
 
+        // Draw semi-transparent background
+        drawRect(0, 0, screenWidth, screenHeight, 0x80000000);
+
         // Draw title
         String title = "Storage Overview (" + storageData.storages.size() + " storages)";
-        int titleWidth = fontRendererObj.getStringWidth(title);
-        fontRendererObj.drawString(title, (screenWidth - titleWidth) / 2, 5, 0xFFFFFF);
+        int titleWidth = mc.fontRendererObj.getStringWidth(title);
+        mc.fontRendererObj.drawStringWithShadow(title, (screenWidth - titleWidth) / 2, 5, 0xFFFFFF);
 
         // Enable scissoring for scrollable area
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        int scaleFactor = sr.getScaleFactor();
         GL11.glScissor(0,
-                      (screenHeight - scrollableAreaY - scrollableAreaHeight) * sr.getScaleFactor(),
-                      screenWidth * sr.getScaleFactor(),
-                      scrollableAreaHeight * sr.getScaleFactor());
+                      (sr.getScaledHeight() - scrollableAreaY - scrollableAreaHeight) * scaleFactor,
+                      screenWidth * scaleFactor,
+                      scrollableAreaHeight * scaleFactor);
 
         GlStateManager.pushMatrix();
         GlStateManager.translate(0, -scrollOffset, 0);
 
-        // Draw storages with proper mouse coordinate adjustment
+        // Get mouse coordinates
+        int mouseX = Mouse.getX() * screenWidth / mc.displayWidth;
+        int mouseY = screenHeight - Mouse.getY() * screenHeight / mc.displayHeight - 1;
         int adjustedMouseY = mouseY + scrollOffset;
+
         drawStorages(screenWidth, scrollableAreaY, mouseX, adjustedMouseY);
 
         GlStateManager.popMatrix();
@@ -90,15 +186,12 @@ public class StorageGUIRender extends GuiScreen {
             drawScrollBar(screenWidth - 10, scrollableAreaY, scrollableAreaHeight);
         }
 
-        // Draw player inventory
-        drawPlayerInventory(mouseX, mouseY, screenHeight - playerInventoryHeight);
-
-        super.drawScreen(mouseX, mouseY, partialTicks);
-
         // Draw tooltip last to ensure it's on top
         if (hoveredItem != null) {
             drawHoveringText(mouseX, mouseY);
         }
+
+
     }
 
     private void drawStorages(int screenWidth, int startY, int mouseX, int mouseY) {
@@ -109,8 +202,8 @@ public class StorageGUIRender extends GuiScreen {
         for (int i = 0; i < storageData.storages.size(); i++) {
             StorageGUIData.Storage storage = storageData.storages.get(i);
 
-            int storageX = 20 + currentCol * storageWidth;
-            int storageY = startY + currentRow * STORAGE_HEIGHT;
+            int storageX = 24 + currentCol * (storageWidth+3);
+            int storageY = startY + currentRow * (STORAGE_HEIGHT + 18);
 
             drawStorage(storage, storageX, storageY, storageWidth, mouseX, mouseY);
 
@@ -138,9 +231,9 @@ public class StorageGUIRender extends GuiScreen {
 
         // Draw title
         String storageTitle = (storage.IsEnderChest ? "Ender Chest " : "Backpack ") + storage.StorageNum;
-        int titleWidth = fontRendererObj.getStringWidth(storageTitle);
+        int titleWidth = mc.fontRendererObj.getStringWidth(storageTitle);
         int titleX = x + (width - titleWidth) / 2;
-        fontRendererObj.drawString(storageTitle, titleX, y + 5, storage.IsEnderChest ? 0x800080 : 0x404040);
+        mc.fontRendererObj.drawStringWithShadow(storageTitle, titleX, y + 5, storage.IsEnderChest ? 0x800080 : 0x404040);
 
         // Draw container background
         drawRect(containerX, containerY, containerX + itemAreaWidth, containerY + itemAreaHeight, 0x88000000);
@@ -159,9 +252,9 @@ public class StorageGUIRender extends GuiScreen {
         int startX = containerX + 5;
         int startY = containerY + 5;
 
-        for (int i = 0; i < storage.contents.length; i++) {
+        for (int i = 9; i < storage.contents.length; i++) {
             int slotX = startX + (i % ITEMS_PER_ROW) * SLOT_SIZE;
-            int slotY = startY + (i / ITEMS_PER_ROW) * SLOT_SIZE;
+            int slotY = startY + ((i-9) / ITEMS_PER_ROW) * SLOT_SIZE;
 
             // Draw slot background
             drawRect(slotX, slotY, slotX + 16, slotY + 16, 0x88888888);
@@ -178,7 +271,7 @@ public class StorageGUIRender extends GuiScreen {
 
                 // Render item
                 mc.getRenderItem().renderItemAndEffectIntoGUI(stack, slotX, slotY);
-                mc.getRenderItem().renderItemOverlayIntoGUI(fontRendererObj, stack, slotX, slotY, null);
+                mc.getRenderItem().renderItemOverlayIntoGUI(mc.fontRendererObj, stack, slotX, slotY, null);
             }
         }
 
@@ -200,29 +293,6 @@ public class StorageGUIRender extends GuiScreen {
         }
     }
 
-    @Override
-    public void handleMouseInput() {
-        try {
-            super.handleMouseInput();
-        } catch (java.io.IOException e) {
-            System.err.println("Error handling mouse input: " + e.getMessage());
-        }
-
-        int wheel = Mouse.getEventDWheel();
-        if (wheel != 0) {
-            handleScrolling(wheel);
-        }
-    }
-
-    private void handleScrolling(int wheel) {
-        int scrollAmount = 20;
-        if (wheel > 0) {
-            scrollOffset = Math.max(0, scrollOffset - scrollAmount);
-        } else if (wheel < 0) {
-            scrollOffset = Math.min(maxScroll, scrollOffset + scrollAmount);
-        }
-    }
-
     private void drawHoveringText(int mouseX, int mouseY) {
         if (hoveredItem == null) return;
 
@@ -232,28 +302,29 @@ public class StorageGUIRender extends GuiScreen {
         // Calculate tooltip dimensions
         int tooltipWidth = 0;
         for (String line : tooltip) {
-            int lineWidth = fontRendererObj.getStringWidth(line);
+            int lineWidth = mc.fontRendererObj.getStringWidth(line);
             if (lineWidth > tooltipWidth) {
                 tooltipWidth = lineWidth;
             }
         }
 
         int tooltipHeight = tooltip.size() * 10;
+        ScaledResolution sr = new ScaledResolution(mc);
 
         // Position tooltip to avoid screen edges
         int tooltipX = mouseX + 12;
         int tooltipY = mouseY - 12;
 
-        if (tooltipX + tooltipWidth + 6 > width) {
+        if (tooltipX + tooltipWidth + 6 > sr.getScaledWidth()) {
             tooltipX = mouseX - tooltipWidth - 12;
         }
-        if (tooltipY + tooltipHeight + 6 > height) {
+        if (tooltipY + tooltipHeight + 6 > sr.getScaledHeight()) {
             tooltipY = mouseY - tooltipHeight - 12;
         }
 
         // Ensure tooltip is on screen
-        tooltipX = Math.max(4, Math.min(tooltipX, width - tooltipWidth - 4));
-        tooltipY = Math.max(4, Math.min(tooltipY, height - tooltipHeight - 4));
+        tooltipX = Math.max(4, Math.min(tooltipX, sr.getScaledWidth() - tooltipWidth - 4));
+        tooltipY = Math.max(4, Math.min(tooltipY, sr.getScaledHeight() - tooltipHeight - 4));
 
         // Draw tooltip with proper z-level
         GlStateManager.disableRescaleNormal();
@@ -262,11 +333,11 @@ public class StorageGUIRender extends GuiScreen {
 
         // Background
         drawRect(tooltipX - 3, tooltipY - 3, tooltipX + tooltipWidth + 3, tooltipY + tooltipHeight + 3, 0xF0100010);
-        drawRect(tooltipX - 2, tooltipY - 2, tooltipX + tooltipWidth + 2, tooltipY + tooltipHeight + 2, 0x505000FF);
+        drawRect(tooltipX - 2, tooltipY - 2, tooltipX + tooltipWidth + 2, tooltipY + tooltipHeight + 2, 0x11111111);
 
         // Text
         for (int i = 0; i < tooltip.size(); i++) {
-            fontRendererObj.drawStringWithShadow(tooltip.get(i), tooltipX, tooltipY + i * 10, 0xFFFFFF);
+            mc.fontRendererObj.drawStringWithShadow(tooltip.get(i), tooltipX, tooltipY + i * 10, 0xFFFFFF);
         }
 
         GlStateManager.enableDepth();
@@ -274,69 +345,9 @@ public class StorageGUIRender extends GuiScreen {
         GlStateManager.enableRescaleNormal();
     }
 
-    private void drawPlayerInventory(int mouseX, int mouseY, int yPosition) {
-
-    }
-
-    private void renderInventorySlot(int slotIndex, int slotX, int slotY, int mouseX, int mouseY, boolean drawHover) {
-        ItemStack stack = mc.thePlayer.inventory.getStackInSlot(slotIndex);
-        if (stack != null) {
-            // Check hover
-            if (mouseX >= slotX && mouseX <= slotX + 16 && mouseY >= slotY && mouseY <= slotY + 16) {
-                hoveredItem = stack;
-                if (drawHover) {
-                    this.drawTexturedModalRect(slotX, slotY, 240, 240, 16, 16);
-                }
-            }
-
-            // Render item
-            mc.getRenderItem().renderItemAndEffectIntoGUI(stack, slotX, slotY);
-            mc.getRenderItem().renderItemOverlayIntoGUI(fontRendererObj, stack, slotX, slotY, null);
-        }
-    }
-
-    @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        try {
-            super.mouseClicked(mouseX, mouseY, mouseButton);
-        } catch (java.io.IOException e) {
-            System.err.println("Error handling mouse click: " + e.getMessage());
-        }
-
-        // Handle storage click
-        if (mouseButton == 0 && clickedStorage != null) {
-            String command = clickedStorage.IsEnderChest
-                ? "/ec " + clickedStorage.StorageNum
-                : "/backpack " + clickedStorage.StorageNum;
-
-            mc.thePlayer.sendChatMessage(command);
-            closeGUI();
-            return;
-        }
-
-        // Close on right-click
-        if (mouseButton == 1) {
-            closeGUI();
-        }
-    }
-
-    private void closeGUI() {
-        this.mc.displayGuiScreen(null);
-        if (this.mc.currentScreen == null) {
-            this.mc.setIngameFocus();
-        }
-    }
-
-    @Override
-    protected void keyTyped(char typedChar, int keyCode) {
-        if (keyCode == 1) { // ESC
-            closeGUI();
-        }
-    }
-
-    @Override
-    public boolean doesGuiPauseGame() {
-        return false;
+    // Helper method for drawing rectangles (since we're no longer extending GuiScreen)
+    private void drawRect(int left, int top, int right, int bottom, int color) {
+        GuiScreen.drawRect(left, top, right, bottom, color);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -351,8 +362,9 @@ public class StorageGUIRender extends GuiScreen {
                 String invName = container.inventorySlots.getSlot(0).inventory.getName();
 
                 if (invName != null && invName.equals("Storage")) {
-                    event.setCanceled(true);
-                    Minecraft.getMinecraft().displayGuiScreen(new StorageGUIRender(storageData));
+                    // Don't cancel the event - let the original container open
+                    // Instead, show our overlay on top
+                    show();
                 }
             }
         }
