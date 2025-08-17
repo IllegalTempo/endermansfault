@@ -69,6 +69,10 @@ public class ConfigGUI extends GuiScreen {
                 this.buttonList.add(new SettingToggle(3, buttonStartX, currentY, "Enable Superpair Support", "toggle_superpair"));
                 currentY += buttonHeight + buttonMargin;
                 this.buttonList.add(new SettingToggle(4, buttonStartX, currentY, "Enable Enchantbook Crafter", "toggle_enchantbook"));
+                currentY += buttonHeight + buttonMargin;
+                this.buttonList.add(new SettingToggle(5, buttonStartX, currentY, "Enable Storage Display", "toggle_storage"));
+                currentY += buttonHeight + buttonMargin;
+                this.buttonList.add(new SettingToggle(6, buttonStartX, currentY, "Show Storage In Inventory", "toggle_storageInInventory"));
                 break;
 
             case 2: // Cute

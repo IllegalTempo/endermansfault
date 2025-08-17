@@ -1,5 +1,6 @@
 package com.endermanpvp.endermanfault.storageDisplay;
 
+import com.endermanpvp.endermanfault.config.ModConfig;
 import com.endermanpvp.endermanfault.equipment.EquipmentFileManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -69,7 +70,7 @@ public class StorageGUIData {
         Slot[] storageContents = new Slot[containerSlots];
 
         // Take the container slots (0 to containerSlots-1), NOT the player inventory slots
-        for (int i = 9; i < containerSlots; i++) {
+        for (int i = 0; i < containerSlots; i++) {
             if (i < totalSlots) {
                 storageContents[i] = container.inventorySlots.getSlot(i);
             }
@@ -119,6 +120,11 @@ public class StorageGUIData {
     @SubscribeEvent
     public void onStorageGUIOpen(GuiOpenEvent event)
     {
+        // Check if storage display is enabled in config
+        if (!ModConfig.getInstance().getBoolean("enable_storage", true)) {
+            return; // Exit early if storage system is disabled
+        }
+
         if(event.gui instanceof GuiContainer) {
             GuiContainer container = (GuiContainer) event.gui;
             if (container.inventorySlots.getSlot(0).inventory.getName().startsWith("Ender Chest") ||
@@ -147,7 +153,8 @@ public class StorageGUIData {
                 storageTag.setInteger("StorageNum", storage.StorageNum);
 
                 NBTTagList itemsList = new NBTTagList();
-                for (int i = 0; i < storage.contents.length; i++) {
+                // Only save items starting from index 9 (skip player inventory slots 0-8)
+                for (int i = 9; i < storage.contents.length; i++) {
                     NBTTagCompound itemTag = new NBTTagCompound();
                     Slot slot = storage.contents[i];
 
@@ -206,8 +213,15 @@ public class StorageGUIData {
 
                     if (storageTag.hasKey("Items")) {
                         NBTTagList itemsList = storageTag.getTagList("Items", 10);
-                        Slot[] contents = new Slot[itemsList.tagCount()];
+                        // Create array with proper size: 9 empty slots + saved items
+                        Slot[] contents = new Slot[9 + itemsList.tagCount()];
 
+                        // Fill slots 0-8 with null (player inventory slots that we don't save)
+                        for (int j = 0; j < 9; j++) {
+                            contents[j] = null;
+                        }
+
+                        // Load the saved items starting from index 9
                         for (int j = 0; j < itemsList.tagCount(); j++) {
                             NBTTagCompound itemTag = itemsList.getCompoundTagAt(j);
 
@@ -215,9 +229,9 @@ public class StorageGUIData {
                                 ItemStack stack = ItemStack.loadItemStackFromNBT(itemTag);
                                 // Create a temporary slot to hold the item
                                 // Note: This is for display purposes only, real slots need inventory references
-                                contents[j] = new TemporarySlot(stack);
+                                contents[9 + j] = new TemporarySlot(stack);
                             } else {
-                                contents[j] = null; // Empty slot
+                                contents[9 + j] = null; // Empty slot
                             }
                         }
 
