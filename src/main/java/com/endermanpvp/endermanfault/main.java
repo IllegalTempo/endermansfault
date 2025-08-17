@@ -2,7 +2,6 @@ package com.endermanpvp.endermanfault;
 
 import com.endermanpvp.endermanfault.ArmorStandOptimize.CustomArmorStandRenderer;
 import com.endermanpvp.endermanfault.config.CommandOpenConfig;
-import com.endermanpvp.endermanfault.config.ConfigGUI;
 import com.endermanpvp.endermanfault.enchantbookcrafter.HighlightSameEnchantClickListener;
 import com.endermanpvp.endermanfault.enchantbookcrafter.Highlightrenderer;
 import com.endermanpvp.endermanfault.equipment.RenderEquipmentInventory;
@@ -10,7 +9,6 @@ import com.endermanpvp.endermanfault.plush.MouseInputHandler;
 import com.endermanpvp.endermanfault.plush.PlushRenderer;
 import com.endermanpvp.endermanfault.plush.conversation.conversationRenderer;
 import com.endermanpvp.endermanfault.storageDisplay.StorageGUIData;
-import com.endermanpvp.endermanfault.storageDisplay.StorageRender;
 import com.endermanpvp.endermanfault.superpair.superpairmain;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -36,7 +34,7 @@ public class main
     @EventHandler
     public void init(FMLInitializationEvent event) {
         if (FMLCommonHandler.instance().getSide() == Side.CLIENT) {
-            storageData.initialize();
+            storageData.loadStorages();
             // Register client command to open config UI: /ef
             ClientCommandHandler.instance.registerCommand(new CommandOpenConfig());
             MinecraftForge.EVENT_BUS.register(new HighlightSameEnchantClickListener());
@@ -53,6 +51,9 @@ public class main
             // Register the equipment inventory renderer
             MinecraftForge.EVENT_BUS.register(new RenderEquipmentInventory());
             MinecraftForge.EVENT_BUS.register(storageData);
+
+            // Register the storage GUI renderer
+            com.endermanpvp.endermanfault.storageDisplay.StorageGUIRender.registerEvents(storageData);
         }
         // Register the secret tracker
     }
