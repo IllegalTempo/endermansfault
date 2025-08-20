@@ -1,5 +1,7 @@
 package com.endermanpvp.endermanfault.storageDisplay;
 
+import com.endermanpvp.endermanfault.DataType.Toggle;
+import com.endermanpvp.endermanfault.config.AllConfig;
 import com.endermanpvp.endermanfault.config.ModConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
@@ -15,11 +17,17 @@ import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class StorageGUIRender {
+    public final Toggle Toggle = AllConfig.INSTANCE.BooleanConfig.get("toggle_storage");
+    public final Toggle Inv = AllConfig.INSTANCE.BooleanConfig.get("toggle_storageInInventory");
+
     private static final ResourceLocation CHEST_GUI_TEXTURE = new ResourceLocation("textures/gui/container/generic_54.png");
     private final StorageGUIData storageData;
     private final Minecraft mc;
@@ -27,7 +35,7 @@ public class StorageGUIRender {
     private final int STORAGE_HEIGHT = 120;
     private int maxScroll = 0;
     private ItemStack hoveredItem = null;
-    private StorageGUIData.Storage clickedStorage = null;
+//    private StorageGUIData.Storage clickedStorage = null;
     private boolean isVisible = false;
     private boolean shouldClose = false;
 
@@ -62,7 +70,7 @@ public class StorageGUIRender {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onDrawScreen(GuiScreenEvent.DrawScreenEvent.Post event) {
         // Check if storage display is enabled in config
-        if (!ModConfig.getInstance().getBoolean("toggle_storage", true)) {
+        if (!Toggle.data) {
             return; // Exit early if storage system is disabled
         }
 
@@ -97,6 +105,13 @@ public class StorageGUIRender {
         GlStateManager.disableBlend();
         GlStateManager.enableDepth();
         GlStateManager.popMatrix();
+    }
+
+    // Encapsulates a hovered overlay slot
+    private static class HoverTarget {
+        StorageGUIData.Storage storage;
+        int slotId; // container slot index (0..containerSlots-1)
+        HoverTarget(StorageGUIData.Storage s, int id) { storage = s; slotId = id; }
     }
 
     // Helper to find which storage (if any) is under a given mouse position
@@ -141,57 +156,250 @@ public class StorageGUIRender {
         return null;
     }
 
+    // Find hovered slot inside storages (returns container slot index i for that storage)
+    private HoverTarget findOverlaySlotAt(int mouseX, int mouseY) {
+        ScaledResolution sr = new ScaledResolution(mc);
+        int leftPanelWidth = Math.min(sr.getScaledWidth() / 2 - 30, 375);
+        int titleHeight = 20;
+        int scrollableAreaY = titleHeight;
+        int adjustedMouseY = mouseY + scrollOffset;
+
+        int adjustedStoragesPerRow = Math.max(1, Math.min(2, leftPanelWidth / 150));
+        int storageWidth = (leftPanelWidth - 30) / adjustedStoragesPerRow;
+
+        int currentRow = 0;
+        int currentCol = 0;
+        for (int i = 0; i < storageData.storages.size(); i++) {
+            StorageGUIData.Storage storage = storageData.storages.get(i);
+            int storageX = 15 + currentCol * (storageWidth + 10);
+            int storageY = scrollableAreaY + currentRow * (STORAGE_HEIGHT + 15);
+
+            // Container area
+            final int ITEMS_PER_ROW = 9;
+            final int SLOT_SIZE = 18;
+            int itemsInStorage = storage.contents.length;
+            int rows = Math.max(1, (itemsInStorage + ITEMS_PER_ROW - 1) / ITEMS_PER_ROW);
+            int itemAreaWidth = Math.min(ITEMS_PER_ROW, itemsInStorage) * SLOT_SIZE + 10;
+            int itemAreaHeight = rows * SLOT_SIZE + 10;
+            int containerX = storageX + (storageWidth - itemAreaWidth) / 2;
+            int containerY = storageY + 20;
+
+            // Slots start coordinates
+            int startX = containerX + 5;
+            int startY = containerY + 5;
+
+            // Check slot rects (only indices 9..length-1 are items for storage)
+            for (int idx = 9; idx < storage.contents.length; idx++) {
+                int slotX = startX + ((idx - 9) % ITEMS_PER_ROW) * SLOT_SIZE;
+                int slotY = startY + ((idx - 9) / ITEMS_PER_ROW) * SLOT_SIZE;
+                if (mouseX >= slotX && mouseX <= slotX + 16 &&
+                    adjustedMouseY >= slotY && adjustedMouseY <= slotY + 16) {
+                    return new HoverTarget(storage, idx);
+                }
+            }
+
+            currentCol++;
+            if (currentCol >= adjustedStoragesPerRow) { currentCol = 0; currentRow++; }
+        }
+        return null;
+    }
+
+    // Check if the hovered slot belongs to the currently open container (so we can windowClick)
+    private boolean isActiveContainerSlot(HoverTarget target) {
+        if (!(mc.currentScreen instanceof GuiContainer)) return false;
+        if (target == null || target.storage == null) return false;
+
+        GuiContainer container = (GuiContainer) mc.currentScreen;
+        if (container.inventorySlots == null || container.inventorySlots.inventorySlots.isEmpty()) return false;
+        String invName = container.inventorySlots.getSlot(0).inventory.getName();
+
+        // Determine open container identity
+        boolean openIsEnder = false;
+        int openNum = -1;
+        try {
+            if (invName.startsWith("Ender Chest")) {
+                openIsEnder = true;
+                openNum = Integer.parseInt(invName.substring(invName.indexOf("(") + 1, invName.indexOf("/")));
+            } else if (invName.contains("Backpack")) {
+                openIsEnder = false;
+                openNum = Integer.parseInt(invName.substring(invName.indexOf("#") + 1, invName.length() - 1));
+            } else {
+                return false; // Not a storage container
+            }
+        } catch (Exception e) {
+            return false; // Parsing failed; treat as not active
+        }
+
+        // Must match the hovered storage identity
+        if (openIsEnder != target.storage.IsEnderChest || openNum != target.storage.StorageNum) return false;
+
+        // Ensure slot index is inside current container slot range (exclude player inv)
+        int totalSlots = container.inventorySlots.inventorySlots.size();
+        int containerSlots = Math.max(0, totalSlots - 36);
+        return target.slotId >= 0 && target.slotId < containerSlots;
+    }
+
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onMouseInput(GuiScreenEvent.MouseInputEvent.Pre event) {
         // Respect config and visibility
-        if (!ModConfig.getInstance().getBoolean("enable_storage", true)) return;
+        if (!Toggle.data) return;
         if (!isVisible) return;
         if (!(event.gui instanceof GuiContainer)) return;
 
-        // Compute mouse relative to current screen
-        int mouseX = org.lwjgl.input.Mouse.getEventX() * event.gui.width / mc.displayWidth;
-        int mouseY = event.gui.height - org.lwjgl.input.Mouse.getEventY() * event.gui.height / mc.displayHeight - 1;
+        int mouseX = Mouse.getEventX() * event.gui.width / mc.displayWidth;
+        int mouseY = event.gui.height - Mouse.getEventY() * event.gui.height / mc.displayHeight - 1;
 
         ScaledResolution sr = new ScaledResolution(mc);
         int leftPanelWidth = Math.min(sr.getScaledWidth() / 2 - 30, 375);
 
-        // Handle scroll wheel over our overlay only
-        int wheel = org.lwjgl.input.Mouse.getEventDWheel();
+        // Handle scroll only within overlay area
+        int wheel = Mouse.getEventDWheel();
         if (wheel != 0 && mouseX <= leftPanelWidth) {
             handleScrolling(wheel);
-            event.setCanceled(true); // we've handled it
+            event.setCanceled(true);
             return;
         }
 
-        // Handle left-click on a storage only; let everything else pass through
-        int button = org.lwjgl.input.Mouse.getEventButton();
-        boolean pressed = org.lwjgl.input.Mouse.getEventButtonState();
-        if (pressed && button == 0 && mouseX <= leftPanelWidth) {
-            StorageGUIData.Storage target = findStorageAt(mouseX, mouseY);
+        // Handle mouse button presses
+        int button = Mouse.getEventButton();
+        boolean pressed = Mouse.getEventButtonState();
+        if (!pressed) return;
+
+        if (mouseX <= leftPanelWidth) {
+            HoverTarget target = findOverlaySlotAt(mouseX, mouseY);
             if (target != null) {
-                this.clickedStorage = target;
-                handleMouseClick(mouseX, mouseY, 0);
-                event.setCanceled(true); // consume only when we actually click a storage
+
+                if(!isActiveContainerSlot(target))
+                {
+
+                    int Clickedcontainernum = target.storage.StorageNum;
+                    boolean Clickedcontainertype = target.storage.IsEnderChest;
+
+                    GuiContainer OpenedContainer = (GuiContainer) mc.currentScreen;
+                    String invName = OpenedContainer.inventorySlots.getSlot(0).inventory.getName();
+                    int opencontainernum = -1;
+                    boolean opencontainertype = false;
+                    if(invName.startsWith("Ender Chest"))
+                    {
+                        opencontainertype = true;
+                        opencontainernum = Integer.parseInt(invName.substring(invName.indexOf("(")+1, invName.indexOf("/")));
+
+                    } else
+                    if(invName.contains("Backpack"))
+                    {
+                        opencontainertype = false;
+                        opencontainernum = Integer.parseInt(invName.substring(invName.indexOf("#")+1,invName.length()-1));
+
+
+                    }
+                    //log open container info and click container info
+                    System.out.println("Open container: " + opencontainernum + " type: " + opencontainertype);
+                    System.out.println("Clicked container: " + Clickedcontainernum + " type: " + Clickedcontainertype);
+                    if(opencontainernum != Clickedcontainernum || opencontainertype != Clickedcontainertype)
+                    {
+                        // Use the hovered storage from the target directly
+                        StorageGUIData.Storage hoveredStorage = target.storage;
+                        String command = hoveredStorage.IsEnderChest
+                                ? "/ec " + hoveredStorage.StorageNum
+                                : "/backpack " + hoveredStorage.StorageNum;
+
+                        // Play click sound when attempting to open a storage via command
+                        playClick();
+                        mc.thePlayer.sendChatMessage(command);
+                        event.setCanceled(true); // swallow so base GUI doesn't also process this click
+                        return;
+                    }
+
+
+                } else {
+                    // Determine click mode
+                    boolean shift = GuiScreen.isShiftKeyDown();
+                    
+                    int windowId = ((GuiContainer) event.gui).inventorySlots.windowId;
+
+
+                        // Normal pick/place: left or right
+                        mc.playerController.windowClick(windowId, target.slotId, 1, 1, mc.thePlayer);
+                        playClick();
+                        // Prevent base GUI from interpreting this as an outside click (which can drop items)
+                        event.setCanceled(true);
+                        return;
+                    
+                }
+            } else {
+                // Click occurred inside the overlay panel but not on a slot:
+                // Cancel the event immediately to prevent item dropping
+                event.setCanceled(true);
+                return;
             }
         }
+        // If click is outside the overlay area, let the base GUI handle it normally
     }
 
-    private void handleMouseClick(int mouseX, int mouseY, int mouseButton) {
-        // Only handle left click (button 0) and only if we have a storage to click
-        if (mouseButton == 0 && clickedStorage != null) {
-            // Play click sound when storage is clicked
-            mc.getSoundHandler().playSound(net.minecraft.client.audio.PositionedSoundRecord.create(
-                new net.minecraft.util.ResourceLocation("gui.button.press"), 1.0F));
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onKeyboardInput(GuiScreenEvent.KeyboardInputEvent.Pre event) {
+        if (!Toggle.data) return;
+        if (!isVisible) return;
+        if (!(event.gui instanceof GuiContainer)) return;
 
-            String command = clickedStorage.IsEnderChest
-                ? "/ec " + clickedStorage.StorageNum
-                : "/backpack " + clickedStorage.StorageNum;
+        // Determine hovered slot (use current mouse position)
+        int mouseX = Mouse.getX() * event.gui.width / mc.displayWidth;
+        int mouseY = event.gui.height - Mouse.getY() * event.gui.height / mc.displayHeight - 1;
 
-            mc.thePlayer.sendChatMessage(command);
+        ScaledResolution sr = new ScaledResolution(mc);
+        int leftPanelWidth = Math.min(sr.getScaledWidth() / 2 - 30, 375);
+        if (mouseX > leftPanelWidth) return; // not over overlay
+
+        HoverTarget target = findOverlaySlotAt(mouseX, mouseY);
+        if (target == null || !isActiveContainerSlot(target)) return;
+
+        int key = Keyboard.getEventKey();
+        if (key == Keyboard.KEY_NONE) return;
+
+        int windowId = ((GuiContainer) event.gui).inventorySlots.windowId;
+
+        // Hotbar swap keys 1..9 -> indices 0..8
+        if (key >= Keyboard.KEY_1 && key <= Keyboard.KEY_9) {
+            int hotbarIndex = key - Keyboard.KEY_1; // 0..8
+            mc.playerController.windowClick(windowId, target.slotId, hotbarIndex, 2, mc.thePlayer);
+            playClick();
+            event.setCanceled(true);
             return;
         }
 
+        // Drop (Q), Ctrl+Q to drop stack
+        if (key == Keyboard.KEY_Q) {
+            boolean ctrl = GuiScreen.isCtrlKeyDown();
+            int mouseParam = ctrl ? 1 : 0; // 1=drop entire stack, 0=drop single
+            mc.playerController.windowClick(windowId, target.slotId, mouseParam, 4, mc.thePlayer);
+            playClick();
+            event.setCanceled(true);
+        }
     }
+
+    private void playClick() {
+        mc.getSoundHandler().playSound(
+            net.minecraft.client.audio.PositionedSoundRecord.create(new net.minecraft.util.ResourceLocation("gui.button.press"), 1.0F)
+        );
+    }
+
+//    private void handleMouseClick(int mouseX, int mouseY, int mouseButton) {
+//        // Only handle left click (button 0) and only if we have a storage to click
+//        if (mouseButton == 0 && clickedStorage != null) {
+//            // Play click sound when storage is clicked
+//            mc.getSoundHandler().playSound(net.minecraft.client.audio.PositionedSoundRecord.create(
+//                new net.minecraft.util.ResourceLocation("gui.button.press"), 1.0F));
+//
+//            String command = clickedStorage.IsEnderChest
+//                ? "/ec " + clickedStorage.StorageNum
+//                : "/backpack " + clickedStorage.StorageNum;
+//
+//            mc.thePlayer.sendChatMessage(command);
+//            return;
+//        }
+//
+//    }
 
     private void handleScrolling(int wheel) {
         int scrollAmount = 20;
@@ -203,14 +411,16 @@ public class StorageGUIRender {
     }
 
     private void renderStorageOverlay() {
-        System.out.println("rendering storage");
 
         ScaledResolution sr = new ScaledResolution(mc);
         int screenWidth = sr.getScaledWidth();
         int screenHeight = sr.getScaledHeight();
 
+        // Ensure scroll range reflects current storage list each frame
+        calculateMaxScroll();
+
         hoveredItem = null;
-        clickedStorage = null;
+//        clickedStorage = null;
 
         // Calculate left panel dimensions - increase size slightly
         int leftPanelWidth = Math.min(screenWidth / 2 - 30, 375); // Half screen minus 30px, or 350px max
@@ -249,8 +459,8 @@ public class StorageGUIRender {
 
         // Draw scroll indicator just to the right of the GUI panel
         if (maxScroll > 0) {
-            // Position scroll bar just outside the right edge of the panel
-            int scrollBarX = leftPanelWidth + 5; // 5 pixels to the right of the panel edge
+            // Position scroll bar completely outside the right edge of the panel
+            int scrollBarX = leftPanelWidth + 10; // fully outside the panel
             drawScrollBar(scrollBarX, scrollableAreaY, scrollableAreaHeight);
         }
 
@@ -312,11 +522,11 @@ public class StorageGUIRender {
         drawRect(containerX, containerY, containerX + itemAreaWidth, containerY + itemAreaHeight, 0x88000000);
         drawRect(containerX + 1, containerY + 1, containerX + itemAreaWidth - 1, containerY + itemAreaHeight - 1, 0x44FFFFFF);
 
-        // Check for storage click (store for mouseClicked event)
-        if (mouseX >= containerX && mouseX <= containerX + itemAreaWidth &&
-            mouseY >= containerY && mouseY <= containerY + itemAreaHeight) {
-            clickedStorage = storage;
-        }
+//        // Check for storage click (store for mouseClicked event)
+//        if (mouseX >= containerX && mouseX <= containerX + itemAreaWidth &&
+//            mouseY >= containerY && mouseY <= containerY + itemAreaHeight) {
+//            clickedStorage = storage;
+//        }
 
         // Draw items
         RenderHelper.enableGUIStandardItemLighting();
@@ -353,16 +563,16 @@ public class StorageGUIRender {
     }
 
     private void drawScrollBar(int x, int y, int height) {
-        // Draw scrollbar background - ensure it's within the panel
-        drawRect(x - 6, y, x - 1, y + height, 0x88000000);
+        // Draw scrollbar background - ensure it's to the right of the panel
+        drawRect(x, y, x + 5, y + height, 0x88000000);
 
         if (maxScroll > 0) {
             // Calculate handle size and position
             int handleHeight = Math.max(10, (height * height) / (height + maxScroll));
             int handleY = y + (int)((height - handleHeight) * ((float)scrollOffset / maxScroll));
 
-            // Draw handle - make it slightly smaller than the background
-            drawRect(x - 5, handleY, x - 2, handleY + handleHeight, 0xFFAAAAAA);
+            // Draw handle - smaller than the background
+            drawRect(x + 1, handleY, x + 4, handleY + handleHeight, 0xFFAAAAAA);
         }
     }
 
@@ -426,7 +636,7 @@ public class StorageGUIRender {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onGuiOpen(GuiOpenEvent event) {
         // Check if storage display is enabled in config
-        if (!ModConfig.getInstance().getBoolean("enable_storage", true)) {
+        if (!Toggle.data) {
             return; // Exit early if storage system is disabled
         }
 
@@ -435,12 +645,12 @@ public class StorageGUIRender {
 
             // Show storage overlay for any container GUI that includes player inventory
             if (container.inventorySlots != null && !container.inventorySlots.inventorySlots.isEmpty()) {
-                if ((container.inventorySlots.getSlot(9).inventory == mc.thePlayer.inventory && ModConfig.getInstance().getBoolean("toggle_storageInInventory", true)) ||
+                if ((container.inventorySlots.getSlot(9).inventory == mc.thePlayer.inventory && Inv.data) ||
                      "Storage".equals(container.inventorySlots.getSlot(0).inventory.getName()))
                      {
                      show();
 
-                 }
+                     }
 
 
              }

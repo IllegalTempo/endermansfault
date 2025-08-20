@@ -1,11 +1,13 @@
 package com.endermanpvp.endermanfault.config;
 
+import com.endermanpvp.endermanfault.DataType.Toggle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
 
 public class SettingToggle extends GuiButton {
+    private Toggle Toggled;
     private final ResourceLocation textureOff;
     private final ResourceLocation textureToggled;
     private final String configField;
@@ -16,19 +18,12 @@ public class SettingToggle extends GuiButton {
         this.textureOff = new ResourceLocation("endermanfault", "textures/ui/toggleoff.png");
         this.textureToggled = new ResourceLocation("endermanfault", "textures/ui/toggleon.png");
         this.configField = configField;
-    }
-
-    private boolean getConfigValue(String configField) {
-        return ModConfig.getInstance().getBoolean(configField, false);
-    }
-
-    private void setConfigValue(String configField, boolean value) {
-        ModConfig.getInstance().setBoolean(configField, value);
+        Toggled = AllConfig.INSTANCE.BooleanConfig.get(configField);
     }
 
     public void toggleConfig() {
-        boolean currentValue = getConfigValue(this.configField);
-        setConfigValue(this.configField, !currentValue);
+        Toggled.data = !Toggled.data;
+
     }
 
     @Override
@@ -46,7 +41,7 @@ public class SettingToggle extends GuiButton {
             GlStateManager.scale(2F*SCALE, 0.25F * SCALE, 1.0F);
 
             // Determine which texture to use based on config value
-            ResourceLocation texture = getConfigValue(this.configField) ? this.textureToggled : this.textureOff;
+            ResourceLocation texture = Toggled.data ? this.textureToggled : this.textureOff;
             mc.getTextureManager().bindTexture(texture);
 
             // Draw the button texture at original size (it will be scaled by the matrix)
@@ -67,10 +62,15 @@ public class SettingToggle extends GuiButton {
 
             // Optional: Draw button text if needed (draw after popping matrix to avoid scaling text)
             if (this.displayString != null && !this.displayString.isEmpty()) {
-                int textColor = 0x101010; // Black text color (much darker)
+                int textColor = 0xFFFFFF; // Light text color
 
-                this.drawCenteredString(mc.fontRendererObj, this.displayString,
-                    this.xPosition + this.width / 2, this.yPosition + (this.height - 8) / 2, textColor);
+                int centerX = this.xPosition + this.width / 2;
+                int centerY = this.yPosition + (this.height - 8) / 2;
+
+                // Draw shadow first (offset by 1 pixel down and right)
+
+                // Draw main text on top
+                this.drawCenteredString(mc.fontRendererObj, this.displayString, centerX, centerY, textColor);
             }
         }
     }

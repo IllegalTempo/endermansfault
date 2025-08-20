@@ -4,7 +4,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 
 public class ConfigGUI extends GuiScreen {
-
+    public static ConfigGUI INSTANCE = new ConfigGUI();
     int guiWidth = 554;
     int guiHeight = 202;
 
@@ -78,12 +78,8 @@ public class ConfigGUI extends GuiScreen {
             case 2: // Cute
                 this.buttonList.add(new SettingToggle(1, buttonStartX, currentY, "Enable Fumo", "toggle_fumo"));
                 currentY += buttonHeight + buttonMargin;
-                this.buttonList.add(new CustomButton(2, buttonStartX, currentY, buttonWidth, 32, "Set Fumo Position",
-                    new CustomButton.IButtonAction() {
-                        public void execute() {
-                            mc.displayGuiScreen(new PositionSelector(ConfigGUI.this, "Select Fumo Position", "plushXOffset", "plushYOffset", "plushScale", width / 2, height / 2, 1.0f));
-                        }
-                    }));
+                this.buttonList.add(new PositionSelectorButton(2, buttonStartX, currentY, buttonWidth, 32, "Set Fumo Position","dim_fumo"));
+
                 break;
         }
     }
@@ -130,11 +126,8 @@ public class ConfigGUI extends GuiScreen {
         // Legacy switch case for any remaining old buttons
         switch (button.id)
         {
-            case 0:
-                this.mc.thePlayer.closeScreen();
-                break;
             case 2:
-                this.mc.displayGuiScreen(new PositionSelector(this, "Select Fumo Position", "plushXOffset", "plushYOffset", this.width / 2, this.height / 2));
+                this.mc.displayGuiScreen(new PositionSelector(this, "Select Fumo Position", "dim_fumo", this.width / 2, this.height / 2,1));
                 break;
         }
     }
@@ -259,5 +252,9 @@ public class ConfigGUI extends GuiScreen {
     public void onGuiClosed() {
         super.onGuiClosed();
         System.out.println("[ConfigGUI.onGuiClosed] GUI closed: " + this);
+
+        // Save configuration when GUI is closed
+        ModConfig.instance.saveConfig();
+        System.out.println("[ConfigGUI.onGuiClosed] Configuration saved");
     }
 }

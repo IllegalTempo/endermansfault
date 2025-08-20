@@ -1,5 +1,7 @@
 package com.endermanpvp.endermanfault.superpair;
 
+import com.endermanpvp.endermanfault.DataType.Toggle;
+import com.endermanpvp.endermanfault.config.AllConfig;
 import com.endermanpvp.endermanfault.config.ModConfig;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.item.ItemStack;
@@ -11,10 +13,12 @@ import java.util.HashMap;
 
 public class superpairmain {
     public static HashMap<Integer, ItemStack> DisplayedItems = new HashMap<Integer,ItemStack>();
+    public final Toggle Toggle = AllConfig.INSTANCE.BooleanConfig.get("toggle_superpair");
+
     public superpairRenderer superpairRenderer = new superpairRenderer();
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent e) {
-        if(!ModConfig.getInstance().getBoolean("toggle_superpair", false)) return;
+        if(!Toggle.data) return;
         DisplayedItems.clear();
 
         if (e.gui instanceof GuiContainer) {

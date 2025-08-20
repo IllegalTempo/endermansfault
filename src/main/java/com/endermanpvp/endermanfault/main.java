@@ -2,6 +2,7 @@ package com.endermanpvp.endermanfault;
 
 import com.endermanpvp.endermanfault.ArmorStandOptimize.CustomArmorStandRenderer;
 import com.endermanpvp.endermanfault.config.CommandOpenConfig;
+import com.endermanpvp.endermanfault.config.ModConfig;
 import com.endermanpvp.endermanfault.enchantbookcrafter.HighlightSameEnchantClickListener;
 import com.endermanpvp.endermanfault.enchantbookcrafter.Highlightrenderer;
 import com.endermanpvp.endermanfault.equipment.RenderEquipmentInventory;
@@ -29,13 +30,14 @@ public class main
 {
     public static final String MODID = "endermanfault";
     public static final String VERSION = "1.0";
-    public static final StorageGUIData storageData = new StorageGUIData();
+    public static StorageGUIData storageData;
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
         if (FMLCommonHandler.instance().getSide() == Side.CLIENT) {
-            storageData.loadStorages();
             // Register client command to open config UI: /ef
+            ModConfig.instance.loadConfig();
+
             ClientCommandHandler.instance.registerCommand(new CommandOpenConfig());
             MinecraftForge.EVENT_BUS.register(new HighlightSameEnchantClickListener());
             RenderingRegistry.registerEntityRenderingHandler(EntityArmorStand.class, new CustomArmorStandRenderer(Minecraft.getMinecraft().getRenderManager()));
@@ -50,7 +52,9 @@ public class main
             MinecraftForge.EVENT_BUS.register(conversationRenderer.getInstance());
             // Register the equipment inventory renderer
             MinecraftForge.EVENT_BUS.register(new RenderEquipmentInventory());
+            storageData = new StorageGUIData();
             MinecraftForge.EVENT_BUS.register(storageData);
+            storageData.loadStorages();
 
             // Register the storage GUI renderer
             com.endermanpvp.endermanfault.storageDisplay.StorageGUIRender.registerEvents(storageData);

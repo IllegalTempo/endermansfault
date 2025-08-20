@@ -36,13 +36,11 @@ public class CommandOpenConfig extends CommandBase {
                 try {
                     Thread.sleep(50); // ~1 tick (50ms) //FUCK YOUUUUUUUUUUUUUUUUUUUUUUUUU
                 } catch (InterruptedException ignored) {}
-                Minecraft.getMinecraft().addScheduledTask(new Runnable() {
-                    @Override
-                    public void run() {
+                Minecraft.getMinecraft().addScheduledTask(()-> {
                         System.out.println("[Command] currentScreen scheduled before: " + Minecraft.getMinecraft().currentScreen);
-                        Minecraft.getMinecraft().displayGuiScreen(new ConfigGUI());
+                        Minecraft.getMinecraft().displayGuiScreen(ConfigGUI.INSTANCE);
                         System.out.println("[Command] currentScreen scheduled after: " + Minecraft.getMinecraft().currentScreen);
-                    }
+
                 });
             }
         }).start();

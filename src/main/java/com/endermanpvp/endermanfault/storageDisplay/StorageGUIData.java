@@ -1,7 +1,7 @@
 package com.endermanpvp.endermanfault.storageDisplay;
 
-import com.endermanpvp.endermanfault.config.ModConfig;
-import com.endermanpvp.endermanfault.equipment.EquipmentFileManager;
+import com.endermanpvp.endermanfault.DataType.Toggle;
+import com.endermanpvp.endermanfault.config.AllConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Slot;
@@ -20,6 +20,7 @@ import java.util.List;
 public class StorageGUIData {
     private static final String STORAGE_FILE_NAME = "storage_data.dat";
     public List<Storage> storages = new ArrayList<Storage>();
+    private final Toggle Toggle = AllConfig.INSTANCE.BooleanConfig.get("toggle_storage");
 
     public static class Storage{
         public boolean IsEnderChest;
@@ -121,7 +122,7 @@ public class StorageGUIData {
     public void onStorageGUIOpen(GuiOpenEvent event)
     {
         // Check if storage display is enabled in config
-        if (!ModConfig.getInstance().getBoolean("enable_storage", true)) {
+        if (!Toggle.data) {
             return; // Exit early if storage system is disabled
         }
 

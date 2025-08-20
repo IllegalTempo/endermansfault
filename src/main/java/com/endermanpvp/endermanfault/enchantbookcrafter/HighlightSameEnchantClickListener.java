@@ -1,6 +1,8 @@
 package com.endermanpvp.endermanfault.enchantbookcrafter;
 
 
+import com.endermanpvp.endermanfault.DataType.Toggle;
+import com.endermanpvp.endermanfault.config.AllConfig;
 import com.endermanpvp.endermanfault.config.ConfigGUI;
 import com.endermanpvp.endermanfault.config.ModConfig;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -19,7 +21,7 @@ import java.util.Set;
 
 public class HighlightSameEnchantClickListener {
     public static final Set<Integer> highlightedSlots = new HashSet<Integer>();
-
+    public final Toggle Toggled = AllConfig.INSTANCE.BooleanConfig.get("toggle_enchantbook");
     @SubscribeEvent
     public void onGuiOpen(GuiScreenEvent.InitGuiEvent.Post event) {
         if (event.gui instanceof GuiContainer) {
@@ -30,7 +32,7 @@ public class HighlightSameEnchantClickListener {
     @SubscribeEvent
     public void onMouseInput(GuiScreenEvent.MouseInputEvent.Pre event) {
 
-        if(!ModConfig.getInstance().getBoolean("toggle_enchantbook", false)) return;
+        if(!Toggled.data) return;
         if (event.gui instanceof GuiContainer) {
             GuiContainer container = (GuiContainer) event.gui;
 

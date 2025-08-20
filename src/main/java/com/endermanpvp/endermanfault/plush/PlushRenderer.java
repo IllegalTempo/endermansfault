@@ -1,7 +1,8 @@
 package com.endermanpvp.endermanfault.plush;
 
-import com.endermanpvp.endermanfault.config.ModConfig;
-import com.endermanpvp.endermanfault.main;
+import com.endermanpvp.endermanfault.DataType.Dimension;
+import com.endermanpvp.endermanfault.DataType.Toggle;
+import com.endermanpvp.endermanfault.config.AllConfig;
 import com.google.common.base.Function;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -36,7 +37,8 @@ public class PlushRenderer {
     private double squeezeFactor = 0.0; // 0.0 = released, 1.0 = fully squeezed
     private long lastFrameTime = 0;
     private final double squeezeSpeed = 0.005; // units per millisecond
-
+    private final Toggle Toggle = AllConfig.INSTANCE.BooleanConfig.get("toggle_fumo");
+    private final Dimension dim = AllConfig.INSTANCE.DimensionConfig.get("dim_fumo");
     public void startSqueezing() {
         this.isHoldingSqueeze = true;
     }
@@ -85,7 +87,7 @@ public class PlushRenderer {
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
-        if(!ModConfig.getInstance().getBoolean("toggle_fumo", false))return;
+        if(!Toggle.data)return;
 
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) {
             return;
@@ -116,15 +118,13 @@ public class PlushRenderer {
             float baseScale = 100.0F;
             // Calculate a dynamic scale factor based on the screen's scaled height.
             // This makes the model resize along with the GUI.
-            float dynamicScale = baseScale * (event.resolution.getScaledHeight() / 1920F) * ModConfig.getInstance().getFloat("plushScale", 1);
+            float dynamicScale = baseScale * (event.resolution.getScaledHeight() / 1920F) * dim.Scale;
 
 
             // Calculate position based on config
-            float posX = ModConfig.getInstance().getInt("plushXOffset", event.resolution.getScaledWidth() / 2);
-            float posY = ModConfig.getInstance().getInt("plushYOffset", event.resolution.getScaledHeight() / 2);
 
             // Position the model based on config settings
-            GlStateManager.translate(posX, posY, 100.0F);
+            GlStateManager.translate(dim.x, dim.y, 100.0F);
 
             // Create a smooth "breathing" animation using a sine wave.
             // The animation speed is controlled by the divisor of currentTimeMillis.

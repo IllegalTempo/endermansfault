@@ -8,13 +8,14 @@ import net.minecraft.util.ResourceLocation;
 import static com.endermanpvp.endermanfault.config.SettingToggle.SCALE;
 
 public class CustomButton extends GuiButton {
-    private final ResourceLocation buttonTexture;
-    private final IButtonAction onClickAction;
+    protected final ResourceLocation buttonTexture;
+    protected final IButtonAction onClickAction;
 
     // Interface for button actions (Java 6 compatible)
     public interface IButtonAction {
         void execute();
     }
+
 
     public CustomButton(int buttonId, int x, int y, int width, int height, String buttonText, IButtonAction onClickAction) {
         super(buttonId, x, y, width, height, buttonText);
@@ -67,11 +68,15 @@ public class CustomButton extends GuiButton {
 
             // Optional: Draw button text if needed (draw after popping matrix to avoid scaling text)
             if (this.displayString != null && !this.displayString.isEmpty()) {
-                int textColor = 0x101010; // Default button text color
+                int textColor = 0xFFFFFF; // Default button text color
+                int centerX = this.xPosition + this.width / 2;
+                int centerY = this.yPosition + (this.height - 8) / 2;
 
 
-                this.drawCenteredString(mc.fontRendererObj, this.displayString,
-                        this.xPosition + this.width / 2, this.yPosition + (this.height - 8) / 2, textColor);
+
+
+                this.drawCenteredString(mc.fontRendererObj, this.displayString, centerX, centerY, textColor);
+
             }
         }
     }

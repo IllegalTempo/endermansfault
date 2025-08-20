@@ -1,5 +1,7 @@
 package com.endermanpvp.endermanfault.equipment;
 
+import com.endermanpvp.endermanfault.DataType.Toggle;
+import com.endermanpvp.endermanfault.config.AllConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -27,6 +29,8 @@ public class RenderEquipmentInventory {
     private static boolean recordedThisSession = false;
     private static String lastInventoryName = "";
 
+    private final Toggle Toggle = AllConfig.INSTANCE.BooleanConfig.get("toggle_equipmentInInventory");
+
     // Load equipment data when the class is first used
     static {
         EquipmentFileManager.EquipmentData data = EquipmentFileManager.loadEquipmentFromFile();
@@ -36,7 +40,7 @@ public class RenderEquipmentInventory {
 
     @SubscribeEvent
     public void onGuiDraw(GuiScreenEvent.DrawScreenEvent.Post event) {
-
+        if(!Toggle.data) return;
         if (event.gui instanceof GuiContainer) {
             GuiContainer container = (GuiContainer) event.gui;
 
@@ -99,7 +103,7 @@ public class RenderEquipmentInventory {
             if (savedEquipmentItems[i] != null) {
                 // Check if mouse is within the equipment slot bounds
                 if (mouseX >= equipmentSlotX[i] && mouseX <= equipmentSlotX[i] + 18 &&
-                    mouseY >= equipmentSlotY[i] && mouseY <= equipmentSlotY[i] + 18) {
+                        mouseY >= equipmentSlotY[i] && mouseY <= equipmentSlotY[i] + 18) {
 
                     // Execute /eq command
                     Minecraft.getMinecraft().thePlayer.sendChatMessage("/eq");
@@ -123,8 +127,8 @@ public class RenderEquipmentInventory {
 
         // Additional checks for inventory name
         if (inventoryName.equals("container.inventory") ||
-            inventoryName.equals("Inventory") ||
-            inventoryName.equals("inventory.player")) {
+                inventoryName.equals("Inventory") ||
+                inventoryName.equals("inventory.player")) {
 
             // Make sure it's not a container with extra slots (like chests, crafting tables, etc.)
             // Player inventory typically has 36 slots (27 main + 9 hotbar) + 4 armor slots + 1 offhand = 41 total
@@ -209,12 +213,12 @@ public class RenderEquipmentInventory {
             if (savedEquipmentItems[i] != null) {
                 // Check if mouse is hovering over the equipment slot
                 if (mouseX >= equipmentSlotX[i] && mouseX <= equipmentSlotX[i] + 18 &&
-                    mouseY >= equipmentSlotY[i] && mouseY <= equipmentSlotY[i] + 18) {
+                        mouseY >= equipmentSlotY[i] && mouseY <= equipmentSlotY[i] + 18) {
 
                     // Get the tooltip lines from the item
                     List<String> tooltip = savedEquipmentItems[i].getTooltip(
-                        Minecraft.getMinecraft().thePlayer,
-                        Minecraft.getMinecraft().gameSettings.advancedItemTooltips
+                            Minecraft.getMinecraft().thePlayer,
+                            Minecraft.getMinecraft().gameSettings.advancedItemTooltips
                     );
 
                     // Render the tooltip with background
@@ -267,11 +271,11 @@ public class RenderEquipmentInventory {
         for (int i = 0; i < tooltip.size(); i++) {
             String line = tooltip.get(i);
             container.drawString(
-                Minecraft.getMinecraft().fontRendererObj,
-                line,
-                tooltipX,
-                tooltipY + (i * 10),
-                0xFFFFFF // White color for text
+                    Minecraft.getMinecraft().fontRendererObj,
+                    line,
+                    tooltipX,
+                    tooltipY + (i * 10),
+                    0xFFFFFF // White color for text
             );
         }
 
@@ -426,7 +430,7 @@ public class RenderEquipmentInventory {
         // Render the item
         Minecraft.getMinecraft().getRenderItem().renderItemAndEffectIntoGUI(itemStack, x + 1, y + 1);
         Minecraft.getMinecraft().getRenderItem().renderItemOverlayIntoGUI(
-            Minecraft.getMinecraft().fontRendererObj, itemStack, x + 1, y + 1, null);
+                Minecraft.getMinecraft().fontRendererObj, itemStack, x + 1, y + 1, null);
 
         // Disable lighting
         RenderHelper.disableStandardItemLighting();
