@@ -1,6 +1,7 @@
 package com.endermanpvp.endermanfault;
 
 import com.endermanpvp.endermanfault.ArmorStandOptimize.CustomArmorStandRenderer;
+import com.endermanpvp.endermanfault.MiningShift.miningShift;
 import com.endermanpvp.endermanfault.config.CommandOpenConfig;
 import com.endermanpvp.endermanfault.config.ModConfig;
 import com.endermanpvp.endermanfault.enchantbookcrafter.HighlightSameEnchantClickListener;
@@ -39,6 +40,7 @@ public class main
             ModConfig.instance.loadConfig();
 
             ClientCommandHandler.instance.registerCommand(new CommandOpenConfig());
+            MinecraftForge.EVENT_BUS.register(new PlayerStat());
             MinecraftForge.EVENT_BUS.register(new HighlightSameEnchantClickListener());
             RenderingRegistry.registerEntityRenderingHandler(EntityArmorStand.class, new CustomArmorStandRenderer(Minecraft.getMinecraft().getRenderManager()));
             PlushRenderer plushRenderer = new PlushRenderer();
@@ -52,8 +54,10 @@ public class main
             MinecraftForge.EVENT_BUS.register(conversationRenderer.getInstance());
             // Register the equipment inventory renderer
             MinecraftForge.EVENT_BUS.register(new RenderEquipmentInventory());
+            MinecraftForge.EVENT_BUS.register(new miningShift());
             storageData = new StorageGUIData();
             MinecraftForge.EVENT_BUS.register(storageData);
+
             storageData.loadStorages();
 
             // Register the storage GUI renderer
