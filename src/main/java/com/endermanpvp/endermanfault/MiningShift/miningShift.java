@@ -1,86 +1,85 @@
 package com.endermanpvp.endermanfault.MiningShift;
 
+import com.endermanpvp.endermanfault.DataType.MyDataType;
+import com.endermanpvp.endermanfault.DataType.MyInt;
+import com.endermanpvp.endermanfault.DataType.Toggle;
 import com.endermanpvp.endermanfault.PlayerStat;
+import com.endermanpvp.endermanfault.config.AllConfig;
 import net.minecraft.block.Block;
-import net.minecraft.block.state.BlockState;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
-import java.util.*;
+import java.util.Hashtable;
+import java.util.Map;
 
 public class miningShift {
-    public Dictionary<IBlockState,Integer> blockStrength = new Hashtable<>();
-    public int ExtraTick = 0;
-
+    private final Toggle toggle;
+    private final MyDataType<Integer> ExtraTick;
+    private final MyDataType<String> ReplaceBlock;
+    private final MyDataType<Integer> BlockMeta;
+    public Map<IBlockState, Integer> blockStrength = new Hashtable<>();
     //<editor-fold desc="Skyblock mineral Blocks">
     private IBlockState GreenMithril1 = Blocks.prismarine.getStateFromMeta(2); // Dark Prismarine
-        private IBlockState GreenMithril2 = Blocks.prismarine.getStateFromMeta(1); // Prismarine Bricks
-        private IBlockState GreenMithril3 = Blocks.prismarine.getStateFromMeta(0); // Regular Prismarine
-
-        // 5x multiplier blocks
-        private IBlockState BlueMithril = Blocks.wool.getStateFromMeta(3); // Light Blue
-
-        // High strength blocks
-        private IBlockState PolishedDiorite = Blocks.stone.getStateFromMeta(4); // Polished Diorite
-
-        // Very high strength blocks (5600)
-        private IBlockState Cobblestone = Blocks.cobblestone.getDefaultState();
-        private IBlockState Clay = Blocks.clay.getDefaultState();
-        private IBlockState HardenedClay = Blocks.hardened_clay.getDefaultState();
-        private IBlockState BrownHardenedClay = Blocks.stained_hardened_clay.getStateFromMeta(12); // Brown
-        private IBlockState RedSandstone = Blocks.red_sandstone.getDefaultState();
-
-        // Packed Ice (6000)
-        private IBlockState PackedIce = Blocks.packed_ice.getDefaultState();
-
-        // Red Glass blocks (2300)
-        private IBlockState RedGlass = Blocks.stained_glass.getStateFromMeta(14); // Red
-        private IBlockState RedGlassPane = Blocks.stained_glass_pane.getStateFromMeta(14); // Red
-
-        // Purple/Lime/Light Blue/Orange/White Glass blocks (3000)
-        private IBlockState PurpleGlass = Blocks.stained_glass.getStateFromMeta(10); // Purple
-        private IBlockState PurpleGlassPane = Blocks.stained_glass_pane.getStateFromMeta(10); // Purple
-        private IBlockState LimeGlass = Blocks.stained_glass.getStateFromMeta(5); // Lime
-        private IBlockState LimeGlassPane = Blocks.stained_glass_pane.getStateFromMeta(5); // Lime
-        private IBlockState LightBlueGlass = Blocks.stained_glass.getStateFromMeta(3); // Light Blue
-        private IBlockState LightBlueGlassPane = Blocks.stained_glass_pane.getStateFromMeta(3); // Light Blue
-        private IBlockState OrangeGlass = Blocks.stained_glass.getStateFromMeta(1); // Orange
-        private IBlockState OrangeGlassPane = Blocks.stained_glass_pane.getStateFromMeta(1); // Orange
-        private IBlockState WhiteGlass = Blocks.stained_glass.getStateFromMeta(0); // White
-        private IBlockState WhiteGlassPane = Blocks.stained_glass_pane.getStateFromMeta(0); // White
-
-        // Yellow Glass blocks (3800)
-        private IBlockState YellowGlass = Blocks.stained_glass.getStateFromMeta(4); // Yellow
-        private IBlockState YellowGlassPane = Blocks.stained_glass_pane.getStateFromMeta(4); // Yellow
-
-        // Pink Glass blocks (4800)
-        private IBlockState PinkGlass = Blocks.stained_glass.getStateFromMeta(6); // Pink
-        private IBlockState PinkGlassPane = Blocks.stained_glass_pane.getStateFromMeta(6); // Pink
-
-        // Blue/Black/Brown/Green Glass blocks (5200)
-        private IBlockState BlueGlass = Blocks.stained_glass.getStateFromMeta(11); // Blue
-        private IBlockState BlueGlassPane = Blocks.stained_glass_pane.getStateFromMeta(11); // Blue
-        private IBlockState BlackGlass = Blocks.stained_glass.getStateFromMeta(15); // Black
-        private IBlockState BlackGlassPane = Blocks.stained_glass_pane.getStateFromMeta(15); // Black
-        private IBlockState BrownGlass = Blocks.stained_glass.getStateFromMeta(12); // Brown
-        private IBlockState BrownGlassPane = Blocks.stained_glass_pane.getStateFromMeta(12); // Brown
-        private IBlockState GreenGlass = Blocks.stained_glass.getStateFromMeta(13); // Green
-        private IBlockState GreenGlassPane = Blocks.stained_glass_pane.getStateFromMeta(13); // Green
-
-        // Legacy block definitions (keeping for compatibility)
-        private IBlockState GrayMithril1 = Blocks.stained_hardened_clay.getStateFromMeta(9);
-        private IBlockState GrayMithril2 = Blocks.wool.getStateFromMeta(7);
+    private IBlockState GreenMithril2 = Blocks.prismarine.getStateFromMeta(1); // Prismarine Bricks
+    private IBlockState GreenMithril3 = Blocks.prismarine.getStateFromMeta(0); // Regular Prismarine
+    // 5x multiplier blocks
+    private IBlockState BlueMithril = Blocks.wool.getStateFromMeta(3); // Light Blue
+    // High strength blocks
+    private IBlockState PolishedDiorite = Blocks.stone.getStateFromMeta(4); // Polished Diorite
+    // Very high strength blocks (5600)
+    private IBlockState Cobblestone = Blocks.cobblestone.getDefaultState();
+    private IBlockState Clay = Blocks.clay.getDefaultState();
+    private IBlockState HardenedClay = Blocks.hardened_clay.getDefaultState();
+    private IBlockState BrownHardenedClay = Blocks.stained_hardened_clay.getStateFromMeta(12); // Brown
+    private IBlockState RedSandstone = Blocks.red_sandstone.getDefaultState();
+    // Packed Ice (6000)
+    private IBlockState PackedIce = Blocks.packed_ice.getDefaultState();
+    // Red Glass blocks (2300)
+    private IBlockState RedGlass = Blocks.stained_glass.getStateFromMeta(14); // Red
+    private IBlockState RedGlassPane = Blocks.stained_glass_pane.getStateFromMeta(14); // Red
+    // Purple/Lime/Light Blue/Orange/White Glass blocks (3000)
+    private IBlockState PurpleGlass = Blocks.stained_glass.getStateFromMeta(10); // Purple
+    private IBlockState PurpleGlassPane = Blocks.stained_glass_pane.getStateFromMeta(10); // Purple
+    private IBlockState LimeGlass = Blocks.stained_glass.getStateFromMeta(5); // Lime
+    private IBlockState LimeGlassPane = Blocks.stained_glass_pane.getStateFromMeta(5); // Lime
+    private IBlockState LightBlueGlass = Blocks.stained_glass.getStateFromMeta(3); // Light Blue
+    private IBlockState LightBlueGlassPane = Blocks.stained_glass_pane.getStateFromMeta(3); // Light Blue
+    private IBlockState OrangeGlass = Blocks.stained_glass.getStateFromMeta(1); // Orange
+    private IBlockState OrangeGlassPane = Blocks.stained_glass_pane.getStateFromMeta(1); // Orange
+    private IBlockState WhiteGlass = Blocks.stained_glass.getStateFromMeta(0); // White
+    private IBlockState WhiteGlassPane = Blocks.stained_glass_pane.getStateFromMeta(0); // White
+    // Yellow Glass blocks (3800)
+    private IBlockState YellowGlass = Blocks.stained_glass.getStateFromMeta(4); // Yellow
+    private IBlockState YellowGlassPane = Blocks.stained_glass_pane.getStateFromMeta(4); // Yellow
+    // Pink Glass blocks (4800) - Changed to Magenta
+    private IBlockState MagentaGlass = Blocks.stained_glass.getStateFromMeta(2); // Magenta
+    private IBlockState MagentaGlassPane = Blocks.stained_glass_pane.getStateFromMeta(2); // Magenta
+    // Blue/Black/Brown/Green Glass blocks (5200)
+    private IBlockState BlueGlass = Blocks.stained_glass.getStateFromMeta(11); // Blue
+    private IBlockState BlueGlassPane = Blocks.stained_glass_pane.getStateFromMeta(11); // Blue
+    private IBlockState BlackGlass = Blocks.stained_glass.getStateFromMeta(15); // Black
+    private IBlockState BlackGlassPane = Blocks.stained_glass_pane.getStateFromMeta(15); // Black
+    private IBlockState BrownGlass = Blocks.stained_glass.getStateFromMeta(12); // Brown
+    private IBlockState BrownGlassPane = Blocks.stained_glass_pane.getStateFromMeta(12); // Brown
     //</editor-fold>
-
+    private IBlockState GreenGlass = Blocks.stained_glass.getStateFromMeta(13); // Green
+    private IBlockState GreenGlassPane = Blocks.stained_glass_pane.getStateFromMeta(13); // Green
+    // Legacy block definitions (keeping for compatibility)
+    private IBlockState GrayMithril1 = Blocks.stained_hardened_clay.getStateFromMeta(9);
+    private IBlockState GrayMithril2 = Blocks.wool.getStateFromMeta(7);
     private BreakingBlock currentBreakingBlock = null;
-    public miningShift()
-    {
+
+    public miningShift() {
+        toggle = AllConfig.INSTANCE.BooleanConfig.get("toggle_pingshift");
+        ExtraTick = AllConfig.INSTANCE.IntConfig.get("inp_pingshift_extraping");
+        ReplaceBlock = AllConfig.INSTANCE.StringConfig.get("inp_pingshift_block");
+        BlockMeta = AllConfig.INSTANCE.IntConfig.get("inp_pingshift_blockmeta");
+
         // Legacy entries (keeping for compatibility)
         blockStrength.put(GrayMithril1, 500);
         blockStrength.put(GrayMithril2, 500);
@@ -113,9 +112,9 @@ public class miningShift {
         blockStrength.put(YellowGlass, 3800);
         blockStrength.put(YellowGlassPane, 3800);
 
-        // Pink Glass blocks (4800)
-        blockStrength.put(PinkGlass, 4800);
-        blockStrength.put(PinkGlassPane, 4800);
+        // Pink Glass blocks (4800) - Changed to Magenta
+        blockStrength.put(MagentaGlass, 4800);
+        blockStrength.put(MagentaGlassPane, 4800);
 
         // Blue/Black/Brown/Green Glass blocks (5200)
         blockStrength.put(BlueGlass, 5200);
@@ -138,56 +137,61 @@ public class miningShift {
         blockStrength.put(PackedIce, 6000);
     }
 
-
     //On Breaking Block Event
     @SubscribeEvent
-    public void WhenBreaking(TickEvent.PlayerTickEvent event)
-    {
-        if(!event.player.equals(Minecraft.getMinecraft().thePlayer)) return;
+    public void WhenBreaking(TickEvent.PlayerTickEvent event) {
+        if (!toggle.data) return;
+        if (!event.player.equals(Minecraft.getMinecraft().thePlayer)) return;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.objectMouseOver != null && mc.objectMouseOver.getBlockPos() != null && mc.gameSettings.keyBindAttack.isKeyDown()) {
             BlockPos currentPos = mc.objectMouseOver.getBlockPos();
-            if(currentBreakingBlock == null||!currentPos.equals(currentBreakingBlock.pos))
-            {
+            IBlockState currentBlockState = mc.theWorld.getBlockState(currentPos);
 
-                BreakBlockSwitched(currentPos,mc.theWorld.getBlockState(currentPos));
+            // If the block is not a Skyblock mineral block, return early
+            if (!blockStrength.containsKey(currentBlockState)) return;
+
+            if (currentBreakingBlock == null || !currentPos.equals(currentBreakingBlock.pos)) {
+
+                BreakBlockSwitched(currentPos, mc.theWorld.getBlockState(currentPos));
             } else {
 
                 currentBreakingBlock.BreakingBlock();
             }
 
+        } else {
+            currentBreakingBlock = null;
         }
 
     }
-    private void BreakBlockSwitched(BlockPos pos,IBlockState newblock)
-    {
-        currentBreakingBlock = new BreakingBlock(pos,newblock);
+
+    private void BreakBlockSwitched(BlockPos pos, IBlockState newblock) {
+        currentBreakingBlock = new BreakingBlock(pos, newblock);
     }
 
     public int getTicksToBreak(IBlockState b) {
 
         Integer strength = blockStrength.get(b);
-        if(strength == null) return 100;
+        if (strength == null) return 100;
 
-        return Math.max((strength*30)/ PlayerStat.INSTANCE.MiningSpeed,4);
+        return Math.max((strength * 30) / PlayerStat.INSTANCE.MiningSpeed, 4);
 
     }
-    private class BreakingBlock
-    {
+
+    private class BreakingBlock {
         public BlockPos pos;
         public int ticksToBreak;
         public int tick = 0;
-        public BreakingBlock(BlockPos p,IBlockState b) {
+
+        public BreakingBlock(BlockPos p, IBlockState b) {
             this.pos = p;
-            ticksToBreak = getTicksToBreak(b)*2;
+            ticksToBreak = getTicksToBreak(b) * 2;
         }
-        public void BreakingBlock()
-        {
+
+        public void BreakingBlock() {
             System.out.println("Breaking Block ttb:" + ticksToBreak + " tick: " + tick);
 
             tick++;
-            if(tick > ticksToBreak + ExtraTick)
-            {
+            if (tick > ticksToBreak + ExtraTick.data) {
                 // Break the block on client side
                 Minecraft mc = Minecraft.getMinecraft();
                 World world = mc.theWorld;
@@ -196,21 +200,20 @@ public class miningShift {
                     // Get the block at the position
                     IBlockState blockState = world.getBlockState(pos);
                     Block block = blockState.getBlock();
+                    // Break the block (set to bedrock instead of air)
+                    IBlockState b = Block.getBlockFromName(ReplaceBlock.data).getStateFromMeta(BlockMeta.data);
+                    if (b == null) b = Blocks.bedrock.getDefaultState();
+                    world.setBlockState(pos, b);
+                    //world.setBlockToAir(pos);
+                    // Play break sound effect
+                    world.playAuxSFX(2001, pos, Block.getStateId(blockState));
 
-                    // Only break if it's not air and the block still exists
-                    if (block != Blocks.bedrock) {
-                        // Break the block (set to bedrock instead of air)
-                        world.setBlockState(pos, Blocks.bedrock.getDefaultState());
-                        //world.setBlockToAir(pos);
-                        // Play break sound effect
-                        world.playAuxSFX(2001, pos, Block.getStateId(blockState));
+                    // Spawn break particles
+                    mc.effectRenderer.addBlockDestroyEffects(pos, blockState);
 
-                        // Spawn break particles
-                        mc.effectRenderer.addBlockDestroyEffects(pos, blockState);
+                    // Optional: Drop items if needed (commented out for client-side only)
+                    // block.dropBlockAsItem(world, pos, blockState, 0);
 
-                        // Optional: Drop items if needed (commented out for client-side only)
-                        // block.dropBlockAsItem(world, pos, blockState, 0);
-                    }
                 }
 
                 currentBreakingBlock = null;

@@ -24,7 +24,7 @@ public class CustomButton extends GuiButton {
     }
 
     public CustomButton(int buttonId, int x, int y, String buttonText, IButtonAction onClickAction) {
-        this(buttonId, x, y, 200, 20, buttonText, onClickAction); // Default Minecraft button size
+        this(buttonId, x, y, 256, 32, buttonText, onClickAction); // Default Minecraft button size
     }
 
     public void executeAction() {

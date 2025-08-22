@@ -1,10 +1,15 @@
 package com.endermanpvp.endermanfault.config;
 
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ConfigGUI extends GuiScreen {
     public static ConfigGUI INSTANCE = new ConfigGUI();
+    public GuiButton typingTo = null;
     int guiWidth = 554;
     int guiHeight = 202;
 
@@ -13,12 +18,13 @@ public class ConfigGUI extends GuiScreen {
     private int qolHeaderY;
     private int cuteHeaderY;
     private int leftMargin = 20;
-
+    public int SubSettingIndex = 999;
     // Animation variables
     private long guiOpenTime;
     private int animationDuration = 500; // 500ms animation
     private int originalButtonPositions[];
     private int originalHeaderPositions[];
+    private List<List<GuiButton>> SubSettings = new ArrayList<List<GuiButton>>();
 
     // Category selection variables
     private int selectedCategory = 0; // 0=Performance, 1=QOL, 2=Cute
@@ -26,12 +32,19 @@ public class ConfigGUI extends GuiScreen {
     private int categoryTabWidth = 140;
     private int categoryTabHeight = 25;
     private int categoryStartY = 50;
+    int buttonStartX = 180; // Start buttons to the right of category tabs
+    int buttonWidth = 256;
+    int buttonHeight = 32;
+    int buttonMargin = 5;
+
+    private List<GuiButton> SubSetting_PingShift = new ArrayList<GuiButton>();
 
     public ConfigGUI() {
         super();
         this.guiOpenTime = System.currentTimeMillis();
         System.out.println("[ConfigGUI.constructor] Created ConfigGUI instance: " + this);
     }
+
 
     @Override
     public void initGui() {
@@ -51,13 +64,28 @@ public class ConfigGUI extends GuiScreen {
         }
 
         this.originalHeaderPositions = new int[]{leftMargin, leftMargin, leftMargin};
+
+        AddSubSetting_PingShift();
+        SubSettings.add(SubSetting_PingShift);
+
+    }
+    private void AddSubSetting_PingShift()
+    {
+        SubSetting_PingShift.clear();
+        int currentY = categoryStartY;
+        int x = buttonStartX+ 290;
+        // Add TextInputField example for PingShift block name
+        this.SubSetting_PingShift.add(new TextInputField(9,x , currentY, "PingShift Block", "inp_pingshift_block", "minecraft:wool"));
+        currentY += buttonHeight + buttonMargin + 20;
+        // Add IntInputField example for PingShift extra ping
+        this.SubSetting_PingShift.add(new IntInputField(10, x, currentY, "Extra Ping (ms)", "inp_pingshift_extraping", 0, 500));
+        currentY += buttonHeight + buttonMargin + 20;
+        // Add IntInputField example for PingShift block metadata
+        this.SubSetting_PingShift.add(new IntInputField(11, x, currentY, "Block Metadata", "inp_pingshift_blockmeta", 0, 15));
     }
 
     private void addButtonsForSelectedCategory() {
-        int buttonStartX = 180; // Start buttons to the right of category tabs
-        int buttonWidth = 256;
-        int buttonHeight = 32;
-        int buttonMargin = 5;
+
         int currentY = categoryStartY;
 
         switch (selectedCategory) {
@@ -73,6 +101,11 @@ public class ConfigGUI extends GuiScreen {
                 this.buttonList.add(new SettingToggle(5, buttonStartX, currentY, "Enable Storage Display", "toggle_storage"));
                 currentY += buttonHeight + buttonMargin;
                 this.buttonList.add(new SettingToggle(6, buttonStartX, currentY, "Show Storage In Inventory", "toggle_storageInInventory"));
+                currentY += buttonHeight + buttonMargin;
+                this.buttonList.add(new SettingToggle(7, buttonStartX, currentY, "PingShift (HighPing Mining)", "toggle_pingshift"));
+                currentY += buttonHeight + buttonMargin;
+                this.buttonList.add(new SubConfigButton(0,8, buttonStartX, currentY,"PingShift Settings"));
+
                 break;
 
             case 2: // Cute
@@ -123,6 +156,7 @@ public class ConfigGUI extends GuiScreen {
             ((CustomButton) button).executeAction();
             return;
         }
+
         // Legacy switch case for any remaining old buttons
         switch (button.id)
         {
@@ -136,27 +170,84 @@ public class ConfigGUI extends GuiScreen {
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws java.io.IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
-        if (mouseButton == 0) { // Left click
-            // Check if click was on a category tab
-            float progress = getAnimationProgress();
-            float easedProgress = easeOutCubic(progress);
-            int startOffset = -300;
-            int animatedHeaderX = (int) (startOffset + (leftMargin - startOffset) * easedProgress);
+        // Handle TextInputField and IntInputField clicks for main buttons
+        for (GuiButton button : this.buttonList) {
+            if (button instanceof TextInputField) {
+                ((TextInputField) button).mouseClicked(mouseX, mouseY, mouseButton);
+            } else if (button instanceof IntInputField) {
+                ((IntInputField) button).mouseClicked(mouseX, mouseY, mouseButton);
+            }
+        }
 
-            for (int i = 0; i < categoryNames.length; i++) {
-                int tabX = animatedHeaderX;
-                int tabY = categoryStartY + (i * (categoryTabHeight + 5));
+        // Handle TextInputField and IntInputField clicks for subsetting buttons
+        if (SubSettingIndex != 999 && SubSettingIndex < SubSettings.size()) {
+            List<GuiButton> subSettingui = SubSettings.get(SubSettingIndex);
+            for (GuiButton button : subSettingui) {
+                if (button instanceof TextInputField) {
+                    ((TextInputField) button).mouseClicked(mouseX, mouseY, mouseButton);
+                } else if (button instanceof IntInputField) {
+                    ((IntInputField) button).mouseClicked(mouseX, mouseY, mouseButton);
+                }
+            }
+        }
 
-                if (mouseX >= tabX && mouseX <= tabX + categoryTabWidth &&
-                    mouseY >= tabY && mouseY <= tabY + categoryTabHeight) {
+        // Check if click was on a category tab
+        float progress = getAnimationProgress();
+        float easedProgress = easeOutCubic(progress);
+        int startOffset = -300;
+        int animatedHeaderX = (int) (startOffset + (leftMargin - startOffset) * easedProgress);
 
-                    // Category tab clicked - switch category
-                    if (selectedCategory != i) {
-                        selectedCategory = i;
-                        // Reinitialize GUI to show new category's buttons
-                        initGui();
-                    }
-                    return;
+        for (int i = 0; i < categoryNames.length; i++) {
+            int tabX = animatedHeaderX;
+            int tabY = categoryStartY + (i * (categoryTabHeight + 5));
+
+            if (mouseX >= tabX && mouseX <= tabX + categoryTabWidth &&
+                mouseY >= tabY && mouseY <= tabY + categoryTabHeight) {
+
+                // Category tab clicked - switch category
+                if (selectedCategory != i) {
+                    selectedCategory = i;
+                    // Reinitialize GUI to show new category's buttons
+                    initGui();
+                }
+                return;
+            }
+        }
+    }
+
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) throws java.io.IOException {
+        super.keyTyped(typedChar, keyCode);
+
+        // Handle text input for focused input fields
+        if (this.typingTo instanceof TextInputField) {
+            ((TextInputField) this.typingTo).keyTyped(typedChar, keyCode);
+        } else if (this.typingTo instanceof IntInputField) {
+            ((IntInputField) this.typingTo).keyTyped(typedChar, keyCode);
+        }
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+
+        // Update cursor counter for focused text fields in main buttons
+        for (GuiButton button : this.buttonList) {
+            if (button instanceof TextInputField) {
+                ((TextInputField) button).updateCursorCounter();
+            } else if (button instanceof IntInputField) {
+                ((IntInputField) button).updateCursorCounter();
+            }
+        }
+
+        // Update cursor counter for focused text fields in subsetting buttons
+        if (SubSettingIndex != 999 && SubSettingIndex < SubSettings.size()) {
+            List<GuiButton> subSettingui = SubSettings.get(SubSettingIndex);
+            for (GuiButton button : subSettingui) {
+                if (button instanceof TextInputField) {
+                    ((TextInputField) button).updateCursorCounter();
+                } else if (button instanceof IntInputField) {
+                    ((IntInputField) button).updateCursorCounter();
                 }
             }
         }
@@ -200,6 +291,31 @@ public class ConfigGUI extends GuiScreen {
 
         // Draw category tabs
         drawCategoryTabs(animatedHeaderX, mouseX, mouseY);
+        if(SubSettingIndex != 999)
+        {
+            List<GuiButton> subSettingui = SubSettings.get(SubSettingIndex);
+
+            // Calculate the actual bounds of the subsetting buttons
+            int minY = Integer.MAX_VALUE;
+            int maxY = Integer.MIN_VALUE;
+
+            for(GuiButton button : subSettingui) {
+                minY = Math.min(minY, button.yPosition);
+                maxY = Math.max(maxY, button.yPosition + button.height);
+            }
+
+            // Add padding and ensure we have a minimum height
+            int padding = 10;
+            int subSettingHeight = subSettingui.isEmpty() ? 50 : (maxY - minY + 2 * padding);
+            int subSettingY = subSettingui.isEmpty() ? categoryStartY : (minY - padding);
+
+            // Draw the subsetting background that properly fits the content
+            drawRect(backgroundX + backgroundWidth, subSettingY, backgroundX + backgroundWidth + 400, subSettingY + subSettingHeight, 0x4D000000);
+
+            for(GuiButton button : subSettingui) {
+                button.drawButton(this.mc, mouseX, mouseY);
+            }
+        }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
